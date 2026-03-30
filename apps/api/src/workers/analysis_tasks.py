@@ -22,56 +22,65 @@ logger = structlog.get_logger()
 
 def _extract_json(text: str) -> dict | None:
     """Extract JSON from Claude response, handling markdown code blocks."""
-    # Try direct parse first
+    if not text:
+        return None
+
+    # Step 1: Strip markdown code fences if present
+    stripped = text.strip()
+    if stripped.startswith("```"):
+        # Remove opening fence (```json or ```)
+        first_newline = stripped.find("\n")
+        if first_newline > 0:
+            stripped = stripped[first_newline + 1:]
+        # Remove closing fence
+        if stripped.rstrip().endswith("```"):
+            stripped = stripped.rstrip()[:-3].rstrip()
+
+    # Step 2: Try direct parse
     try:
-        return json.loads(text)
+        return json.loads(stripped)
     except (json.JSONDecodeError, TypeError):
         pass
 
-    # Try extracting from ```json ... ``` blocks (greedy — find the LARGEST block)
-    # Use greedy match to get everything between first ``` and LAST ```
-    match = re.search(r"```(?:json)?\s*\n([\s\S]+)\n\s*```\s*$", text)
-    if match:
-        try:
-            return json.loads(match.group(1))
-        except json.JSONDecodeError:
-            pass
-
-    # Fallback: lazy match
-    match = re.search(r"```(?:json)?\s*\n?(.*?)\n?\s*```", text, re.DOTALL)
-    if match:
-        try:
-            return json.loads(match.group(1))
-        except json.JSONDecodeError:
-            pass
-
-    # Find the LARGEST valid JSON object in the text
+    # Step 3: Find the LARGEST valid JSON object by depth-matching braces
     best_result = None
     best_size = 0
 
     for start_char, end_char in [("{", "}"), ("[", "]")]:
-        pos = 0
-        while pos < len(text):
-            start = text.find(start_char, pos)
-            if start == -1:
+        # Track if we're inside a string to avoid false brace matches
+        start = stripped.find(start_char)
+        if start == -1:
+            continue
+        depth = 0
+        in_string = False
+        escape = False
+        for i in range(start, len(stripped)):
+            c = stripped[i]
+            if escape:
+                escape = False
+                continue
+            if c == '\\':
+                escape = True
+                continue
+            if c == '"':
+                in_string = not in_string
+                continue
+            if in_string:
+                continue
+            if c == start_char:
+                depth += 1
+            elif c == end_char:
+                depth -= 1
+            if depth == 0:
+                candidate = stripped[start : i + 1]
+                if len(candidate) > best_size:
+                    try:
+                        parsed = json.loads(candidate)
+                        best_result = parsed
+                        best_size = len(candidate)
+                    except json.JSONDecodeError:
+                        pass
                 break
-            depth = 0
-            for i in range(start, len(text)):
-                if text[i] == start_char:
-                    depth += 1
-                elif text[i] == end_char:
-                    depth -= 1
-                if depth == 0:
-                    candidate = text[start : i + 1]
-                    if len(candidate) > best_size:
-                        try:
-                            parsed = json.loads(candidate)
-                            best_result = parsed
-                            best_size = len(candidate)
-                        except json.JSONDecodeError:
-                            pass
-                    break
-            pos = start + 1
 
     return best_result
 
