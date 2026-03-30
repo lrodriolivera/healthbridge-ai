@@ -3,7 +3,10 @@
 import { useState, useEffect, FormEvent } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Pencil, Trash2, X, Check, Lock } from 'lucide-react'
+import {
+  ArrowLeft, Pencil, Trash2, X, Check, Lock,
+  Upload, Box, Play, Loader2, CheckCircle, AlertCircle,
+} from 'lucide-react'
 import { api } from '@/lib/api'
 
 interface Project {
@@ -89,9 +92,70 @@ export default function ProjectDetailPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
+  // Phase 1 state
+  const [uploadCount, setUploadCount] = useState(0)
+  const [componentCount, setComponentCount] = useState(0)
+  const [complexitySummary, setComplexitySummary] = useState<Record<string, number>>({})
+  const [analysisStatus, setAnalysisStatus] = useState<{
+    status: string; total_files: number; analyzed: number; failed: number
+  } | null>(null)
+  const [triggeringAnalysis, setTriggeringAnalysis] = useState(false)
+
   useEffect(() => {
     loadProject()
+    loadPhase1Data()
   }, [projectId])
+
+  // Poll analysis status when running
+  useEffect(() => {
+    const isRunning = analysisStatus?.status === 'running' || analysisStatus?.status === 'queued'
+    if (!isRunning) return
+    const interval = setInterval(async () => {
+      try {
+        const status = await api.getAnalysisStatus(projectId)
+        setAnalysisStatus(status)
+        if (status.status !== 'running' && status.status !== 'queued') {
+          // Reload components after analysis completes
+          loadPhase1Data()
+        }
+      } catch { /* ignore */ }
+    }, 3000)
+    return () => clearInterval(interval)
+  }, [analysisStatus?.status, projectId])
+
+  async function loadPhase1Data() {
+    try {
+      const uploads = await api.listUploads(projectId)
+      setUploadCount((uploads.items || []).length)
+    } catch { /* no uploads yet */ }
+    try {
+      const comps = await api.listComponents(projectId, 0, 100)
+      const items = comps.items || []
+      setComponentCount(comps.total || 0)
+      const summary: Record<string, number> = {}
+      for (const c of items) {
+        summary[c.complexity] = (summary[c.complexity] || 0) + 1
+      }
+      setComplexitySummary(summary)
+    } catch { /* no components yet */ }
+    try {
+      const status = await api.getAnalysisStatus(projectId)
+      setAnalysisStatus(status)
+    } catch { /* no analysis yet */ }
+  }
+
+  async function handleTriggerAnalysis() {
+    setTriggeringAnalysis(true)
+    try {
+      await api.triggerAnalysis(projectId)
+      const status = await api.getAnalysisStatus(projectId)
+      setAnalysisStatus(status)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to trigger analysis')
+    } finally {
+      setTriggeringAnalysis(false)
+    }
+  }
 
   async function loadProject() {
     try {
@@ -336,10 +400,119 @@ export default function ProjectDetailPage() {
         </div>
       )}
 
-      {/* Pipeline sections (placeholders) */}
+      {/* Pipeline sections */}
       <div className="space-y-4">
         <h2 className="text-lg font-semibold text-slate-900">Migration Pipeline</h2>
-        <PlaceholderSection title="Source Components" phase="Phase 1" />
+
+        {/* Files section */}
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Upload className="h-5 w-5 text-primary-500" />
+              <div>
+                <h3 className="font-medium text-slate-900">Files</h3>
+                <p className="text-sm text-slate-500">
+                  {uploadCount > 0 ? `${uploadCount} file${uploadCount !== 1 ? 's' : ''} uploaded` : 'No files uploaded yet'}
+                </p>
+              </div>
+            </div>
+            <Link href={`/projects/${projectId}/uploads`} className="btn-secondary text-sm">
+              Manage Files
+            </Link>
+          </div>
+        </div>
+
+        {/* Analysis section */}
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {analysisStatus?.status === 'running' || analysisStatus?.status === 'queued' ? (
+                <Loader2 className="h-5 w-5 animate-spin text-yellow-500" />
+              ) : analysisStatus?.status === 'completed' ? (
+                <CheckCircle className="h-5 w-5 text-green-500" />
+              ) : analysisStatus?.status === 'failed' ? (
+                <AlertCircle className="h-5 w-5 text-red-500" />
+              ) : (
+                <Play className="h-5 w-5 text-slate-400" />
+              )}
+              <div>
+                <h3 className="font-medium text-slate-900">Analysis</h3>
+                {analysisStatus?.status === 'running' || analysisStatus?.status === 'queued' ? (
+                  <p className="text-sm text-yellow-600">
+                    Analyzing... ({analysisStatus.analyzed}/{analysisStatus.total_files} files)
+                  </p>
+                ) : analysisStatus?.status === 'completed' ? (
+                  <p className="text-sm text-green-600">
+                    Complete: {analysisStatus.analyzed} files analyzed
+                    {analysisStatus.failed > 0 && ` (${analysisStatus.failed} failed)`}
+                  </p>
+                ) : analysisStatus?.status === 'failed' ? (
+                  <p className="text-sm text-red-600">Analysis failed</p>
+                ) : (
+                  <p className="text-sm text-slate-500">Not started</p>
+                )}
+              </div>
+            </div>
+            {!(analysisStatus?.status === 'running' || analysisStatus?.status === 'queued') && uploadCount > 0 && (
+              <button
+                onClick={handleTriggerAnalysis}
+                disabled={triggeringAnalysis}
+                className="btn-primary text-sm"
+              >
+                {triggeringAnalysis ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Starting...
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    <Play className="h-4 w-4" />
+                    {analysisStatus?.status === 'completed' ? 'Re-analyze' : 'Analyze'}
+                  </span>
+                )}
+              </button>
+            )}
+          </div>
+          {(analysisStatus?.status === 'running' || analysisStatus?.status === 'queued') && analysisStatus.total_files > 0 && (
+            <div className="mt-3 h-2 w-full rounded-full bg-slate-200">
+              <div
+                className="h-2 rounded-full bg-primary-500 transition-all"
+                style={{ width: `${(analysisStatus.analyzed / analysisStatus.total_files) * 100}%` }}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Components section */}
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Box className="h-5 w-5 text-primary-500" />
+              <div>
+                <h3 className="font-medium text-slate-900">Source Components</h3>
+                {componentCount > 0 ? (
+                  <p className="text-sm text-slate-500">
+                    {componentCount} component{componentCount !== 1 ? 's' : ''}
+                    {Object.keys(complexitySummary).length > 0 && (
+                      <span className="ml-1">
+                        ({Object.entries(complexitySummary).map(([k, v]) => `${v} ${k}`).join(', ')})
+                      </span>
+                    )}
+                  </p>
+                ) : (
+                  <p className="text-sm text-slate-500">No components detected yet</p>
+                )}
+              </div>
+            </div>
+            {componentCount > 0 && (
+              <Link href={`/projects/${projectId}/components`} className="btn-secondary text-sm">
+                View Components
+              </Link>
+            )}
+          </div>
+        </div>
+
+        {/* Future phases - placeholders */}
         <PlaceholderSection title="Mappings" phase="Phase 2" />
         <PlaceholderSection title="Generated Code" phase="Phase 2" />
         <PlaceholderSection title="Validation Results" phase="Phase 3" />

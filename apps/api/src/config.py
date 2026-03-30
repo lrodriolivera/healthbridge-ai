@@ -33,6 +33,11 @@ class Settings(BaseSettings):
     high_complexity_model: str = "anthropic.claude-opus-4-6-v1"
     fast_model: str = "anthropic.claude-haiku-4-5-20251001-v1:0"
 
+    # Storage
+    storage_backend: str = "local"  # "local" or "s3"
+    upload_dir: str = "./uploads"
+    max_upload_size_mb: int = 100
+
     # Auth
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60

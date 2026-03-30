@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.db import engine
-from src.routers import auth, projects
+from src.routers import analysis, auth, projects, uploads
 
 
 @asynccontextmanager
@@ -34,16 +34,18 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(projects.router, prefix="/api/v1/projects", tags=["projects"])
 
+# Phase 1 routers
+app.include_router(uploads.router, prefix="/api/v1/projects", tags=["uploads"])
+app.include_router(analysis.router, prefix="/api/v1/projects", tags=["analysis"])
+
 
 @app.get("/health")
 async def health_check():
     return {"status": "ok", "service": "healthbridge-ai"}
 
 
-# TODO Phase 1+: Add remaining routers
-# from src.routers import uploads, analysis, mappings, codegen, deploy, testing, iris_connections
-# app.include_router(uploads.router, prefix="/api/v1/projects", tags=["uploads"])
-# app.include_router(analysis.router, prefix="/api/v1/projects", tags=["analysis"])
+# TODO Phase 2+: Add remaining routers
+# from src.routers import mappings, codegen, deploy, testing, iris_connections
 # app.include_router(mappings.router, prefix="/api/v1/projects", tags=["mappings"])
 # app.include_router(codegen.router, prefix="/api/v1/projects", tags=["codegen"])
 # app.include_router(deploy.router, prefix="/api/v1/projects", tags=["deploy"])
