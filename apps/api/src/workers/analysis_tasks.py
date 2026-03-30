@@ -28,7 +28,16 @@ def _extract_json(text: str) -> dict | None:
     except (json.JSONDecodeError, TypeError):
         pass
 
-    # Try extracting from ```json ... ``` blocks
+    # Try extracting from ```json ... ``` blocks (greedy — find the LARGEST block)
+    # Use greedy match to get everything between first ``` and LAST ```
+    match = re.search(r"```(?:json)?\s*\n([\s\S]+)\n\s*```\s*$", text)
+    if match:
+        try:
+            return json.loads(match.group(1))
+        except json.JSONDecodeError:
+            pass
+
+    # Fallback: lazy match
     match = re.search(r"```(?:json)?\s*\n?(.*?)\n?\s*```", text, re.DOTALL)
     if match:
         try:
@@ -36,23 +45,35 @@ def _extract_json(text: str) -> dict | None:
         except json.JSONDecodeError:
             pass
 
-    # Try finding first { ... } or [ ... ]
+    # Find the LARGEST valid JSON object in the text
+    best_result = None
+    best_size = 0
+
     for start_char, end_char in [("{", "}"), ("[", "]")]:
-        start = text.find(start_char)
-        if start == -1:
-            continue
-        depth = 0
-        for i in range(start, len(text)):
-            if text[i] == start_char:
-                depth += 1
-            elif text[i] == end_char:
-                depth -= 1
-            if depth == 0:
-                try:
-                    return json.loads(text[start : i + 1])
-                except json.JSONDecodeError:
+        pos = 0
+        while pos < len(text):
+            start = text.find(start_char, pos)
+            if start == -1:
+                break
+            depth = 0
+            for i in range(start, len(text)):
+                if text[i] == start_char:
+                    depth += 1
+                elif text[i] == end_char:
+                    depth -= 1
+                if depth == 0:
+                    candidate = text[start : i + 1]
+                    if len(candidate) > best_size:
+                        try:
+                            parsed = json.loads(candidate)
+                            best_result = parsed
+                            best_size = len(candidate)
+                        except json.JSONDecodeError:
+                            pass
                     break
-    return None
+            pos = start + 1
+
+    return best_result
 
 
 async def _analyze_project_async(project_id: str, tenant_id: str):
