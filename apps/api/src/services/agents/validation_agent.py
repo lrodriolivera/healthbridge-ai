@@ -157,8 +157,10 @@ Return a JSON object:
 
         all_issues = static_issues  # warnings from static + semantic findings
 
+        has_warnings_only = all(i["severity"] != "error" for i in all_issues)
+
         return {
-            "passed": len(static_issues) == 0,
+            "passed": has_warnings_only,
             "issues": all_issues,
             "semantic_review": semantic_result.get("content", ""),
         }
