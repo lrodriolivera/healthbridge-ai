@@ -72,7 +72,32 @@ Classification criteria:
         messages = [
             {
                 "role": "user",
-                "content": f"Analyze this Oracle SOA composite and produce a structured JSON inventory:\n\n{''.join(content_parts)}",
+                "content": f"""Analyze this Oracle SOA composite and produce a SINGLE JSON object (not an array) with this EXACT structure:
+
+{{
+  "component_name": "Name of the composite",
+  "type": "soa_composite",
+  "description": "What this composite does",
+  "complexity": "low|medium|high|very_high",
+  "exposed_services": [{{"name": "...", "type": "SOAP|REST|TCP", "port": 8080, "protocol": "HTTP"}}],
+  "external_references": [{{"name": "...", "url": "...", "type": "SOAP|REST|MLLP"}}],
+  "hl7_messages": [{{"type": "ADT^A01", "direction": "inbound|outbound", "version": "2.5"}}],
+  "transformations": [{{"name": "xsl_name", "type": "XSL|BPEL_Assign", "description": "what it transforms"}}],
+  "business_logic": "Step by step description of the flow",
+  "proposed_iris_mapping": {{
+    "BS": [{{"name": "BS.ClassName", "extends": "EnsLib.SOAP.Service"}}],
+    "BP": [{{"name": "BP.ClassName", "extends": "Ens.BusinessProcess"}}],
+    "BO": [{{"name": "BO.ClassName", "extends": "Ens.BusinessOperation"}}],
+    "DTL": [{{"name": "DTL.ClassName", "extends": "Ens.DataTransformDTL"}}],
+    "MSG": [{{"name": "MSG.ClassName", "extends": "Ens.Request"}}]
+  }}
+}}
+
+IMPORTANT: Return ONLY a single JSON object. The proposed_iris_mapping MUST include all necessary IRIS classes.
+
+Source files:
+
+{''.join(content_parts)}""",
             }
         ]
 
