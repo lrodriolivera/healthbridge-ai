@@ -118,6 +118,13 @@ class ApiClient {
     return this.fetch(`/projects/${projectId}/analyze`, { method: 'POST' })
   }
 
+  analyzeSingleFile(projectId: string, fileKey: string) {
+    return this.fetch(`/projects/${projectId}/analyze-file`, {
+      method: 'POST',
+      body: JSON.stringify({ file_key: fileKey }),
+    })
+  }
+
   getAnalysisStatus(projectId: string) {
     return this.fetch(`/projects/${projectId}/analysis/status`)
   }

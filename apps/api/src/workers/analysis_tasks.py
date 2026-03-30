@@ -178,6 +178,65 @@ async def _analyze_image_async(project_id: str, tenant_id: str, image_key: str):
         session.commit()
 
 
+async def _analyze_single_file_async(project_id: str, tenant_id: str, file_key: str):
+    """Analyze a single uploaded file."""
+    storage = get_storage()
+    agent = AnalysisAgent()
+    jar_parser = JARParser()
+    mirth_parser = MirthParser()
+
+    content = await storage.get_file(file_key)
+    filename = file_key.split("/")[-1]
+
+    if filename.endswith((".jar", ".zip")):
+        parsed = jar_parser.parse(content)
+        result = await agent.analyze_soa_composite(
+            composite_xml=parsed.get("composite_xml", ""),
+            bpel_files=parsed.get("bpel_files", {}),
+            xsl_files=parsed.get("xsl_files", {}),
+        )
+    elif filename.endswith(".xml"):
+        xml_content = content.decode("utf-8")
+        parsed = mirth_parser.parse(xml_content)
+        result = await agent.analyze_mirth_channel(xml_content)
+    else:
+        logger.info("Unsupported file type", filename=filename)
+        return
+
+    analysis = _extract_json(result.get("content", ""))
+    if not analysis:
+        logger.warning("Failed to parse analysis JSON", filename=filename)
+        return
+
+    with SyncSession() as session:
+        component = SourceComponent(
+            project_id=uuid.UUID(project_id),
+            tenant_id=uuid.UUID(tenant_id),
+            name=analysis.get("component_name", filename),
+            component_type=analysis.get("type", "unknown"),
+            source_file_s3_key=file_key,
+            analysis_result=analysis,
+            exposed_services=analysis.get("exposed_services", []),
+            external_references=analysis.get("external_references", []),
+            hl7_messages=analysis.get("hl7_messages", []),
+            complexity=analysis.get("complexity"),
+            status="analyzed",
+        )
+        session.add(component)
+        session.commit()
+        logger.info("Single file analyzed", filename=filename, component=component.name)
+
+
+@celery_app.task(name="analyze_single_file", bind=True, max_retries=1)
+def analyze_single_file_task(self, project_id: str, tenant_id: str, file_key: str):
+    """Celery task: analyze a single uploaded file."""
+    try:
+        asyncio.run(_analyze_single_file_async(project_id, tenant_id, file_key))
+    except Exception as exc:
+        logger.error("analyze_single_file_task failed", file_key=file_key, error=str(exc))
+        raise self.retry(exc=exc, countdown=30)
+
+
 @celery_app.task(name="analyze_project", bind=True, max_retries=1)
 def analyze_project_task(self, project_id: str, tenant_id: str):
     """Celery task: analyze all uploaded files in a project."""

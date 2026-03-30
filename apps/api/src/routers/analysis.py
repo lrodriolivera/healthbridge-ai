@@ -21,7 +21,8 @@ from src.schemas.source_component import (
 )
 from src.schemas.upload import AnalyzeImageRequest, AnalysisStatusResponse
 from src.services.storage import get_storage
-from src.workers.analysis_tasks import analyze_image_task, analyze_project_task
+from pydantic import BaseModel
+from src.workers.analysis_tasks import analyze_image_task, analyze_project_task, analyze_single_file_task
 
 router = APIRouter()
 
@@ -43,6 +44,21 @@ async def trigger_analysis(
     await db.flush()
 
     return {"task_id": task.id, "status": "queued"}
+
+
+class AnalyzeSingleFileRequest(BaseModel):
+    file_key: str
+
+
+@router.post("/{project_id}/analyze-file")
+async def analyze_single_file(
+    body: AnalyzeSingleFileRequest,
+    project: Project = Depends(get_project_for_tenant),
+    tenant: Tenant = Depends(get_current_tenant),
+    current_user: User = Depends(get_current_user),
+):
+    task = analyze_single_file_task.delay(str(project.id), str(tenant.id), body.file_key)
+    return {"task_id": task.id, "status": "queued", "file_key": body.file_key}
 
 
 @router.get("/{project_id}/analysis/status", response_model=AnalysisStatusResponse)
