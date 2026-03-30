@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { FolderOpen, Settings, LogOut, Menu, X } from 'lucide-react'
+import { FolderOpen, Server, Settings, LogOut, Menu, X } from 'lucide-react'
 import { api } from '@/lib/api'
 import { removeToken } from '@/lib/auth'
 
@@ -16,6 +16,7 @@ interface User {
 
 const navItems = [
   { label: 'Projects', href: '/projects', icon: FolderOpen, active: true },
+  { label: 'IRIS Connections', href: '/iris-connections', icon: Server, active: true },
   { label: 'Settings', href: '#', icon: Settings, active: false, comingSoon: true },
 ]
 

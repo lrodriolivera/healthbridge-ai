@@ -6,7 +6,7 @@ import Link from 'next/link'
 import {
   ArrowLeft, Pencil, Trash2, X, Check, Lock,
   Upload, Box, Play, Loader2, CheckCircle, AlertCircle,
-  GitBranch, Code2,
+  GitBranch, Code2, Rocket, Server,
 } from 'lucide-react'
 import { api } from '@/lib/api'
 
@@ -108,10 +108,17 @@ export default function ProjectDetailPage() {
   const [generatedTotal, setGeneratedTotal] = useState(0)
   const [generatedPassed, setGeneratedPassed] = useState(0)
 
+  // Phase 3 state (deploy)
+  const [deployStatus, setDeployStatus] = useState<{
+    status: string; total_classes: number; deployed: number; failed: number
+  } | null>(null)
+  const [deployHistory, setDeployHistory] = useState<any[]>([])
+
   useEffect(() => {
     loadProject()
     loadPhase1Data()
     loadPhase2Data()
+    loadPhase3Data()
   }, [projectId])
 
   // Poll analysis status when running
@@ -167,6 +174,17 @@ export default function ProjectDetailPage() {
       setGeneratedTotal(generated.total || 0)
       setGeneratedPassed((generated.items || []).filter((g: any) => g.validation_status === 'passed').length)
     } catch { /* no generated yet */ }
+  }
+
+  async function loadPhase3Data() {
+    try {
+      const status = await api.getDeployStatus(projectId)
+      setDeployStatus(status)
+    } catch { /* no deploy yet */ }
+    try {
+      const history = await api.getDeployHistory(projectId)
+      setDeployHistory(history.items || [])
+    } catch { /* no history yet */ }
   }
 
   async function handleTriggerAnalysis() {
@@ -581,10 +599,58 @@ export default function ProjectDetailPage() {
           </div>
         </div>
 
+        {/* Deploy section */}
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {deployStatus?.status === 'deploying' ? (
+                <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
+              ) : deployStatus?.status === 'completed' || deployStatus?.status === 'deployed' ? (
+                <CheckCircle className="h-5 w-5 text-green-500" />
+              ) : deployStatus?.status === 'failed' ? (
+                <AlertCircle className="h-5 w-5 text-red-500" />
+              ) : (
+                <Rocket className="h-5 w-5 text-primary-500" />
+              )}
+              <div>
+                <h3 className="font-medium text-slate-900">Deploy to IRIS</h3>
+                {deployStatus?.status === 'deploying' ? (
+                  <p className="text-sm text-blue-600 animate-pulse">
+                    Deploying... ({deployStatus.deployed}/{deployStatus.total_classes} classes)
+                  </p>
+                ) : deployStatus?.status === 'completed' || deployStatus?.status === 'deployed' ? (
+                  <p className="text-sm text-green-600">
+                    Last deploy: {deployStatus.deployed} deployed
+                    {deployStatus.failed > 0 && `, ${deployStatus.failed} failed`}
+                  </p>
+                ) : deployStatus?.status === 'failed' ? (
+                  <p className="text-sm text-red-600">Last deployment failed</p>
+                ) : deployHistory.length > 0 ? (
+                  <p className="text-sm text-slate-500">
+                    {deployHistory.length} previous deployment{deployHistory.length !== 1 ? 's' : ''}
+                  </p>
+                ) : (
+                  <p className="text-sm text-slate-500">Not deployed yet</p>
+                )}
+              </div>
+            </div>
+            <Link href={`/projects/${projectId}/deploy`} className="btn-primary text-sm">
+              <Rocket className="mr-1.5 h-4 w-4" />
+              Deploy
+            </Link>
+          </div>
+          {deployStatus?.status === 'deploying' && deployStatus.total_classes > 0 && (
+            <div className="mt-3 h-2 w-full rounded-full bg-slate-200">
+              <div
+                className="h-2 rounded-full bg-blue-500 transition-all animate-pulse"
+                style={{ width: `${((deployStatus.deployed + deployStatus.failed) / deployStatus.total_classes) * 100}%` }}
+              />
+            </div>
+          )}
+        </div>
+
         {/* Future phases - placeholders */}
-        <PlaceholderSection title="Validation Results" phase="Phase 3" />
-        <PlaceholderSection title="Deployment" phase="Phase 4" />
-        <PlaceholderSection title="Test Results" phase="Phase 5" />
+        <PlaceholderSection title="Test Results" phase="Phase 4" />
       </div>
     </div>
   )

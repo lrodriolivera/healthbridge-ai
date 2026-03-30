@@ -224,6 +224,44 @@ class ApiClient {
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     return res.blob()
   }
+
+  // IRIS Connections
+  listConnections() {
+    return this.fetch('/iris-connections')
+  }
+
+  createConnection(data: any) {
+    return this.fetch('/iris-connections', { method: 'POST', body: JSON.stringify(data) })
+  }
+
+  updateConnection(id: string, data: any) {
+    return this.fetch(`/iris-connections/${id}`, { method: 'PUT', body: JSON.stringify(data) })
+  }
+
+  deleteConnection(id: string) {
+    return this.fetch(`/iris-connections/${id}`, { method: 'DELETE' })
+  }
+
+  testConnection(id: string) {
+    return this.fetch(`/iris-connections/${id}/test`, { method: 'POST' })
+  }
+
+  // Deploy
+  deployProject(projectId: string, data: { iris_connection_id: string; generate_production: boolean }) {
+    return this.fetch(`/projects/${projectId}/deploy`, { method: 'POST', body: JSON.stringify(data) })
+  }
+
+  dryRunDeploy(projectId: string, data: { iris_connection_id: string }) {
+    return this.fetch(`/projects/${projectId}/deploy/dry-run`, { method: 'POST', body: JSON.stringify(data) })
+  }
+
+  getDeployStatus(projectId: string) {
+    return this.fetch(`/projects/${projectId}/deploy/status`)
+  }
+
+  getDeployHistory(projectId: string) {
+    return this.fetch(`/projects/${projectId}/deploy/history`)
+  }
 }
 
 export const api = new ApiClient()
