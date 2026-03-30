@@ -4,9 +4,9 @@ import { useState, useEffect, FormEvent } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import {
-  ArrowLeft, Pencil, Trash2, X, Check, Lock,
+  ArrowLeft, Pencil, Trash2, X, Check,
   Upload, Box, Play, Loader2, CheckCircle, AlertCircle,
-  GitBranch, Code2, Rocket, Server,
+  GitBranch, Code2, Rocket, Server, FlaskConical,
 } from 'lucide-react'
 import { api } from '@/lib/api'
 
@@ -60,19 +60,6 @@ function formatDate(dateStr: string): string {
   })
 }
 
-function PlaceholderSection({ title, phase }: { title: string; phase: string }) {
-  return (
-    <div className="card">
-      <div className="flex items-center gap-3">
-        <Lock className="h-5 w-5 text-slate-300" />
-        <div>
-          <h3 className="font-medium text-slate-400">{title}</h3>
-          <p className="text-sm text-slate-400">Coming in {phase}</p>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 export default function ProjectDetailPage() {
   const router = useRouter()
@@ -114,11 +101,18 @@ export default function ProjectDetailPage() {
   } | null>(null)
   const [deployHistory, setDeployHistory] = useState<any[]>([])
 
+  // Phase 4 state (testing)
+  const [testTotal, setTestTotal] = useState(0)
+  const [testResultsSummary, setTestResultsSummary] = useState<{
+    total: number; passed: number; failed: number; errors: number
+  } | null>(null)
+
   useEffect(() => {
     loadProject()
     loadPhase1Data()
     loadPhase2Data()
     loadPhase3Data()
+    loadPhase4Data()
   }, [projectId])
 
   // Poll analysis status when running
@@ -185,6 +179,22 @@ export default function ProjectDetailPage() {
       const history = await api.getDeployHistory(projectId)
       setDeployHistory(history.items || [])
     } catch { /* no history yet */ }
+  }
+
+  async function loadPhase4Data() {
+    try {
+      const tests = await api.listTests(projectId, 0, 1)
+      setTestTotal(tests.total || 0)
+    } catch { /* no tests yet */ }
+    try {
+      const results = await api.listTestResults(projectId, 0, 1)
+      setTestResultsSummary({
+        total: results.total || 0,
+        passed: results.passed || 0,
+        failed: results.failed || 0,
+        errors: results.errors || 0,
+      })
+    } catch { /* no results yet */ }
   }
 
   async function handleTriggerAnalysis() {
@@ -649,8 +659,47 @@ export default function ProjectDetailPage() {
           )}
         </div>
 
-        {/* Future phases - placeholders */}
-        <PlaceholderSection title="Test Results" phase="Phase 4" />
+        {/* Testing section */}
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <FlaskConical className="h-5 w-5 text-primary-500" />
+              <div>
+                <h3 className="font-medium text-slate-900">Testing</h3>
+                {testTotal > 0 ? (
+                  <p className="text-sm text-slate-500">
+                    {testTotal} test case{testTotal !== 1 ? 's' : ''}
+                    {testResultsSummary && testResultsSummary.total > 0 && (
+                      <span className="ml-1">
+                        — Last run:
+                        <span className="ml-1 text-emerald-600">{testResultsSummary.passed} passed</span>
+                        {testResultsSummary.failed > 0 && (
+                          <span className="ml-1 text-red-600">{testResultsSummary.failed} failed</span>
+                        )}
+                        {testResultsSummary.errors > 0 && (
+                          <span className="ml-1 text-amber-600">{testResultsSummary.errors} errors</span>
+                        )}
+                      </span>
+                    )}
+                  </p>
+                ) : (
+                  <p className="text-sm text-slate-500">No test cases created yet</p>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {testResultsSummary && testResultsSummary.total > 0 && (
+                <Link href={`/projects/${projectId}/tests/results`} className="btn-secondary text-sm">
+                  View Results
+                </Link>
+              )}
+              <Link href={`/projects/${projectId}/tests`} className="btn-primary text-sm">
+                <FlaskConical className="mr-1.5 h-4 w-4" />
+                Run Tests
+              </Link>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )

@@ -262,6 +262,39 @@ class ApiClient {
   getDeployHistory(projectId: string) {
     return this.fetch(`/projects/${projectId}/deploy/history`)
   }
+
+  // Tests
+  listTests(projectId: string, skip = 0, limit = 50) {
+    return this.fetch(`/projects/${projectId}/tests?skip=${skip}&limit=${limit}`)
+  }
+
+  createTest(projectId: string, data: any) {
+    return this.fetch(`/projects/${projectId}/tests`, { method: 'POST', body: JSON.stringify(data) })
+  }
+
+  updateTest(projectId: string, testId: string, data: any) {
+    return this.fetch(`/projects/${projectId}/tests/${testId}`, { method: 'PUT', body: JSON.stringify(data) })
+  }
+
+  executeTest(projectId: string, testId: string, connectionId: string) {
+    return this.fetch(`/projects/${projectId}/tests/${testId}/execute`, { method: 'POST', body: JSON.stringify({ iris_connection_id: connectionId }) })
+  }
+
+  executeAllTests(projectId: string, connectionId: string) {
+    return this.fetch(`/projects/${projectId}/tests/execute-all`, { method: 'POST', body: JSON.stringify({ iris_connection_id: connectionId }) })
+  }
+
+  listTestResults(projectId: string, skip = 0, limit = 50) {
+    return this.fetch(`/projects/${projectId}/tests/results?skip=${skip}&limit=${limit}`)
+  }
+
+  getTestResult(projectId: string, resultId: string) {
+    return this.fetch(`/projects/${projectId}/tests/results/${resultId}`)
+  }
+
+  importHL7(projectId: string, messages: any[]) {
+    return this.fetch(`/projects/${projectId}/tests/import-hl7`, { method: 'POST', body: JSON.stringify({ messages }) })
+  }
 }
 
 export const api = new ApiClient()
