@@ -26,7 +26,7 @@ from src.services.iris.atelier_client import AtelierClient
 router = APIRouter()
 
 
-@router.get("/", response_model=IRISConnectionListResponse)
+@router.get("", response_model=IRISConnectionListResponse)
 async def list_connections(
     tenant: Tenant = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
@@ -46,7 +46,7 @@ async def list_connections(
     return IRISConnectionListResponse(items=result.scalars().all(), total=total)
 
 
-@router.post("/", response_model=IRISConnectionResponse, status_code=201)
+@router.post("", response_model=IRISConnectionResponse, status_code=201)
 async def create_connection(
     body: IRISConnectionCreate,
     tenant: Tenant = Depends(get_current_tenant),

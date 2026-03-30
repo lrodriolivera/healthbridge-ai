@@ -22,7 +22,7 @@ from src.schemas.project import (
 router = APIRouter()
 
 
-@router.get("/", response_model=ProjectListResponse)
+@router.get("", response_model=ProjectListResponse)
 async def list_projects(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
@@ -46,7 +46,7 @@ async def list_projects(
     return ProjectListResponse(items=projects, total=total)
 
 
-@router.post("/", response_model=ProjectResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=ProjectResponse, status_code=status.HTTP_201_CREATED)
 async def create_project(
     body: ProjectCreate,
     current_user: User = Depends(get_current_user),
