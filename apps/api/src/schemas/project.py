@@ -19,7 +19,7 @@ class SourcePlatform(str, Enum):
 class ProjectCreate(BaseModel):
     name: str
     description: str | None = None
-    source_platform: SourcePlatform
+    source_platforms: list[SourcePlatform]
 
 
 class ProjectUpdate(BaseModel):
@@ -36,6 +36,7 @@ class ProjectResponse(BaseModel):
     name: str
     description: str | None
     source_platform: str
+    source_platforms: list[str]
     target_platform: str
     status: str
     created_by: uuid.UUID | None

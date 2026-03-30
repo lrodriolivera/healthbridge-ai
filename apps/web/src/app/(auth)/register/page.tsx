@@ -22,8 +22,9 @@ export default function RegisterPage() {
     try {
       const data = await api.register(email, password, tenantName)
       setToken(data.access_token)
-      router.push('/projects')
+      window.location.href = '/projects'
     } catch (err) {
+      console.error('Register error:', err)
       setError(err instanceof Error ? err.message : 'Registration failed')
     } finally {
       setLoading(false)

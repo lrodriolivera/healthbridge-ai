@@ -10,7 +10,7 @@ class TestProjectsCRUD:
         response = await client.post("/api/v1/projects/", json={
             "name": "UC CHRISTUS Migration",
             "description": "Mirth to IRIS",
-            "source_platform": "mirth_connect",
+            "source_platforms": ["mirth_connect"],
         }, headers=auth_headers)
         assert response.status_code == 201
         data = response.json()
@@ -22,10 +22,10 @@ class TestProjectsCRUD:
     async def test_list_projects(self, client: AsyncClient, auth_headers: dict):
         # Create two projects
         await client.post("/api/v1/projects/", json={
-            "name": "Project 1", "source_platform": "oracle_soa",
+            "name": "Project 1", "source_platforms": ["oracle_soa"],
         }, headers=auth_headers)
         await client.post("/api/v1/projects/", json={
-            "name": "Project 2", "source_platform": "mirth_connect",
+            "name": "Project 2", "source_platforms": ["mirth_connect"],
         }, headers=auth_headers)
 
         response = await client.get("/api/v1/projects/", headers=auth_headers)
@@ -36,7 +36,7 @@ class TestProjectsCRUD:
 
     async def test_get_project(self, client: AsyncClient, auth_headers: dict):
         create_resp = await client.post("/api/v1/projects/", json={
-            "name": "Get Me", "source_platform": "rhapsody",
+            "name": "Get Me", "source_platforms": ["rhapsody"],
         }, headers=auth_headers)
         project_id = create_resp.json()["id"]
 
@@ -46,7 +46,7 @@ class TestProjectsCRUD:
 
     async def test_update_project(self, client: AsyncClient, auth_headers: dict):
         create_resp = await client.post("/api/v1/projects/", json={
-            "name": "Old Name", "source_platform": "oracle_soa",
+            "name": "Old Name", "source_platforms": ["oracle_soa"],
         }, headers=auth_headers)
         project_id = create_resp.json()["id"]
 
@@ -59,7 +59,7 @@ class TestProjectsCRUD:
 
     async def test_delete_project(self, client: AsyncClient, auth_headers: dict):
         create_resp = await client.post("/api/v1/projects/", json={
-            "name": "Delete Me", "source_platform": "biztalk",
+            "name": "Delete Me", "source_platforms": ["biztalk"],
         }, headers=auth_headers)
         project_id = create_resp.json()["id"]
 
@@ -71,7 +71,7 @@ class TestProjectsCRUD:
 
     async def test_invalid_source_platform(self, client: AsyncClient, auth_headers: dict):
         response = await client.post("/api/v1/projects/", json={
-            "name": "Bad Platform", "source_platform": "invalid_platform",
+            "name": "Bad Platform", "source_platforms": ["invalid_platform"],
         }, headers=auth_headers)
         assert response.status_code == 422
 
@@ -91,7 +91,7 @@ class TestTenantIsolation:
 
         # Create project in tenant A
         proj = await client.post("/api/v1/projects/", json={
-            "name": "Private", "source_platform": "oracle_soa",
+            "name": "Private", "source_platforms": ["oracle_soa"],
         }, headers={"Authorization": f"Bearer {token_a}"})
         project_id = proj.json()["id"]
 

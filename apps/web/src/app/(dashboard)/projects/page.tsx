@@ -11,6 +11,7 @@ interface Project {
   name: string
   description: string | null
   source_platform: string
+  source_platforms: string[]
   status: string
   created_at: string
 }
@@ -71,6 +72,7 @@ export default function ProjectsPage() {
       setProjects(data.items)
       setTotal(data.total)
     } catch (err) {
+      console.error('Projects load error:', err)
       setError(err instanceof Error ? err.message : 'Failed to load projects')
     } finally {
       setLoading(false)
@@ -152,13 +154,16 @@ export default function ProjectsPage() {
               )}
 
               <div className="mt-auto flex flex-wrap items-center gap-2">
-                <span
-                  className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                    platformColors[project.source_platform] || platformColors.other
-                  }`}
-                >
-                  {platformLabels[project.source_platform] || project.source_platform}
-                </span>
+                {(project.source_platforms || [project.source_platform]).map((p) => (
+                  <span
+                    key={p}
+                    className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                      platformColors[p] || platformColors.other
+                    }`}
+                  >
+                    {platformLabels[p] || p}
+                  </span>
+                ))}
                 <span
                   className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
                     statusColors[project.status] || statusColors.created

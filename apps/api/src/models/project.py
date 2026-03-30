@@ -19,7 +19,10 @@ class Project(TenantMixin, TimestampMixin, Base):
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    source_platform: Mapped[str] = mapped_column(String(50), nullable=False)
+    source_platform: Mapped[str] = mapped_column(String(50), nullable=False)  # primary platform (backward compat)
+    source_platforms: Mapped[list] = mapped_column(
+        JSONB, server_default=text("'[]'::jsonb")
+    )
     target_platform: Mapped[str] = mapped_column(
         String(50), server_default="iris_healthconnect"
     )

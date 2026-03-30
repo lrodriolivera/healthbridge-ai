@@ -1,4 +1,4 @@
-const API_BASE = '/api/v1'
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api/v1'
 
 class ApiClient {
   private getToken(): string | null {
@@ -29,7 +29,9 @@ class ApiClient {
 
     if (res.status === 401) {
       localStorage.removeItem('token')
-      window.location.href = '/login'
+      if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+        window.location.href = '/login'
+      }
       throw new Error('Unauthorized')
     }
 
@@ -70,7 +72,7 @@ class ApiClient {
     return this.fetch(`/projects/${id}`)
   }
 
-  createProject(data: { name: string; description?: string; source_platform: string }) {
+  createProject(data: { name: string; description?: string; source_platforms: string[] }) {
     return this.fetch('/projects', {
       method: 'POST',
       body: JSON.stringify(data),

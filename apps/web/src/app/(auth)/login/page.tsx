@@ -21,7 +21,7 @@ export default function LoginPage() {
     try {
       const data = await api.login(email, password)
       setToken(data.access_token)
-      router.push('/projects')
+      window.location.href = '/projects'
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed')
     } finally {

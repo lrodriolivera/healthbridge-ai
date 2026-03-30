@@ -53,11 +53,13 @@ async def create_project(
     tenant: Tenant = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
 ):
+    platforms = [p.value for p in body.source_platforms]
     project = Project(
         tenant_id=tenant.id,
         name=body.name,
         description=body.description,
-        source_platform=body.source_platform.value,
+        source_platform=platforms[0],  # primary for backward compat
+        source_platforms=platforms,
         created_by=current_user.id,
     )
     db.add(project)
