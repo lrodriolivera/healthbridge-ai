@@ -11,11 +11,21 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   api:
     build:
@@ -26,13 +36,21 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/healthbridge
       - REDIS_URL=redis://redis:6379/0
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+      # AWS Infra (S3, Secrets Manager) — Account 367509577730
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
       - S3_BUCKET=${S3_BUCKET:-healthbridge-data}
+      # AWS Bedrock (Claude models) — Account 962990060849
+      - AWS_BEDROCK_ACCESS_KEY_ID=${AWS_BEDROCK_ACCESS_KEY_ID}
+      - AWS_BEDROCK_SECRET_ACCESS_KEY=${AWS_BEDROCK_SECRET_ACCESS_KEY}
+      - AWS_BEDROCK_REGION=${AWS_BEDROCK_REGION:-us-east-1}
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     volumes:
       - ../../apps/api/src:/app/src
 
@@ -43,13 +61,32 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/healthbridge
       - REDIS_URL=redis://redis:6379/0
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
       - S3_BUCKET=${S3_BUCKET:-healthbridge-data}
+      - AWS_BEDROCK_ACCESS_KEY_ID=${AWS_BEDROCK_ACCESS_KEY_ID}
+      - AWS_BEDROCK_SECRET_ACCESS_KEY=${AWS_BEDROCK_SECRET_ACCESS_KEY}
+      - AWS_BEDROCK_REGION=${AWS_BEDROCK_REGION:-us-east-1}
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ../../apps/web
+      dockerfile: ../../infra/docker/web.Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://api:8000
+    depends_on:
+      - api
+    volumes:
+      - ../../apps/web/src:/app/src
 
 volumes:
   pgdata:

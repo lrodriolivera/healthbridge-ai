@@ -1,4 +1,4 @@
-"""Base agent class for Claude AI agents"""
+"""Base agent class for Claude AI agents via AWS Bedrock"""
 
 import anthropic
 import structlog
@@ -15,7 +15,11 @@ class BaseAgent:
     tools: list = []
 
     def __init__(self, model: str | None = None, max_tokens: int = 8192):
-        self.client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+        self.client = anthropic.AnthropicBedrock(
+            aws_access_key=settings.aws_bedrock_access_key_id,
+            aws_secret_key=settings.aws_bedrock_secret_access_key,
+            aws_region=settings.aws_bedrock_region,
+        )
         self.model = model or settings.default_model
         self.max_tokens = max_tokens
 

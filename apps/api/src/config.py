@@ -1,9 +1,11 @@
 """Application configuration"""
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
     # App
     app_name: str = "HealthBridge AI"
     debug: bool = False
@@ -15,23 +17,25 @@ class Settings(BaseSettings):
     # Redis
     redis_url: str = "redis://localhost:6379/0"
 
-    # AWS
+    # AWS — Infrastructure (S3, Secrets Manager, etc.) — Account 367509577730
     aws_region: str = "us-east-1"
     s3_bucket: str = "healthbridge-data"
     aws_access_key_id: str = ""
     aws_secret_access_key: str = ""
 
-    # Anthropic
-    anthropic_api_key: str = ""
-    default_model: str = "claude-sonnet-4-20250514"
-    high_complexity_model: str = "claude-opus-4-20250514"
+    # AWS Bedrock — Claude models — Account 962990060849
+    aws_bedrock_region: str = "us-east-1"
+    aws_bedrock_access_key_id: str = ""
+    aws_bedrock_secret_access_key: str = ""
+
+    # Claude models (Bedrock model IDs)
+    default_model: str = "anthropic.claude-sonnet-4-6"
+    high_complexity_model: str = "anthropic.claude-opus-4-6-v1"
+    fast_model: str = "anthropic.claude-haiku-4-5-20251001-v1:0"
 
     # Auth
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
-
-    class Config:
-        env_file = ".env"
 
 
 settings = Settings()

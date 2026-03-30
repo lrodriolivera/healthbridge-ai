@@ -1,0 +1,111 @@
+'use client'
+
+import { useState, FormEvent } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { api } from '@/lib/api'
+import { setToken } from '@/lib/auth'
+
+export default function RegisterPage() {
+  const router = useRouter()
+  const [tenantName, setTenantName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+
+    try {
+      const data = await api.register(email, password, tenantName)
+      setToken(data.access_token)
+      router.push('/projects')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Registration failed')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div>
+      <h2 className="mb-1 text-xl font-semibold text-slate-900">Create your account</h2>
+      <p className="mb-6 text-sm text-slate-500">Start migrating your healthcare integrations</p>
+
+      {error && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label htmlFor="tenant" className="mb-1.5 block text-sm font-medium text-slate-700">
+            Organization name
+          </label>
+          <input
+            id="tenant"
+            type="text"
+            required
+            value={tenantName}
+            onChange={(e) => setTenantName(e.target.value)}
+            className="input-field"
+            placeholder="Your hospital or organization"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-slate-700">
+            Email
+          </label>
+          <input
+            id="email"
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="input-field"
+            placeholder="you@company.com"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-slate-700">
+            Password
+          </label>
+          <input
+            id="password"
+            type="password"
+            required
+            minLength={8}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="input-field"
+            placeholder="At least 8 characters"
+          />
+        </div>
+
+        <button type="submit" disabled={loading} className="btn-primary w-full">
+          {loading ? (
+            <span className="flex items-center gap-2">
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+              Creating account...
+            </span>
+          ) : (
+            'Create account'
+          )}
+        </button>
+      </form>
+
+      <p className="mt-6 text-center text-sm text-slate-500">
+        Already have an account?{' '}
+        <Link href="/login" className="font-medium text-primary-600 hover:text-primary-700">
+          Sign in
+        </Link>
+      </p>
+    </div>
+  )
+}
