@@ -338,6 +338,12 @@ class ApiClient {
     a.click()
     URL.revokeObjectURL(url)
   }
+  // Settings
+  getTenantSettings() { return this.fetch('/settings/tenant') }
+  updateTenantSettings(data: any) { return this.fetch('/settings/tenant', { method: 'PUT', body: JSON.stringify(data) }) }
+  getProfile() { return this.fetch('/settings/profile') }
+  updateProfile(data: any) { return this.fetch('/settings/profile', { method: 'PUT', body: JSON.stringify(data) }) }
+  getAvailableModels() { return this.fetch('/settings/models') }
 }
 
 export const api = new ApiClient()

@@ -18,7 +18,7 @@ const navItems = [
   { label: 'Projects', href: '/projects', icon: FolderOpen, active: true },
   { label: 'IRIS Connections', href: '/iris-connections', icon: Server, active: true },
   { label: 'Audit Log', href: '/audit-log', icon: ScrollText, active: true },
-  { label: 'Settings', href: '#', icon: Settings, active: false, comingSoon: true },
+  { label: 'Settings', href: '/settings', icon: Settings, active: true },
 ]
 
 export default function Sidebar() {
@@ -65,15 +65,6 @@ export default function Sidebar() {
             const isActive = item.active && pathname.startsWith(item.href)
             return (
               <li key={item.label}>
-                {item.comingSoon ? (
-                  <span className="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-400">
-                    <item.icon className="h-5 w-5" />
-                    {item.label}
-                    <span className="ml-auto rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-400">
-                      Soon
-                    </span>
-                  </span>
-                ) : (
                   <Link
                     href={item.href}
                     onClick={() => setMobileOpen(false)}
@@ -86,7 +77,6 @@ export default function Sidebar() {
                     <item.icon className={`h-5 w-5 ${isActive ? 'text-primary-600' : ''}`} />
                     {item.label}
                   </Link>
-                )}
               </li>
             )
           })}
