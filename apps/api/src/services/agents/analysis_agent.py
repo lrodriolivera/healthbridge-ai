@@ -43,14 +43,31 @@ Classification criteria:
 - very_high: Embedded Java/JavaScript, complex BPEL with parallel flows, error compensation"""
 
     async def analyze_soa_composite(self, composite_xml: str, bpel_files: dict[str, str], xsl_files: dict[str, str]) -> dict:
-        """Analyze an Oracle SOA composite and its related files."""
-        content_parts = [f"## composite.xml\n```xml\n{composite_xml}\n```"]
+        """Analyze an Oracle SOA composite and its related files.
+        Truncates large files to stay within Claude's context window."""
+        MAX_FILE_SIZE = 15000  # chars per file
+        MAX_TOTAL_SIZE = 400000  # ~100K tokens total prompt
 
+        content_parts = [f"## composite.xml\n```xml\n{composite_xml[:MAX_FILE_SIZE]}\n```"]
+        total_size = len(composite_xml[:MAX_FILE_SIZE])
+
+        # Include BPEL files (most important for business logic)
         for name, content in bpel_files.items():
-            content_parts.append(f"## BPEL: {name}\n```xml\n{content}\n```")
+            truncated = content[:MAX_FILE_SIZE]
+            if total_size + len(truncated) > MAX_TOTAL_SIZE:
+                content_parts.append(f"## BPEL: {name}\n(truncated — {len(content)} chars, showing first {MAX_FILE_SIZE})\n```xml\n{content[:5000]}\n```")
+                break
+            content_parts.append(f"## BPEL: {name}\n```xml\n{truncated}\n```")
+            total_size += len(truncated)
 
+        # Include XSL files (transformations)
         for name, content in xsl_files.items():
-            content_parts.append(f"## XSL: {name}\n```xml\n{content}\n```")
+            truncated = content[:MAX_FILE_SIZE]
+            if total_size + len(truncated) > MAX_TOTAL_SIZE:
+                content_parts.append(f"\n(Remaining {len(xsl_files)} XSL files omitted due to size. File names: {', '.join(xsl_files.keys())})")
+                break
+            content_parts.append(f"## XSL: {name}\n```xml\n{truncated}\n```")
+            total_size += len(truncated)
 
         messages = [
             {
