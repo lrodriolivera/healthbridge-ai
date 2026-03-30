@@ -8,5 +8,6 @@ from src.models.generated_class import GeneratedClass
 from src.models.iris_connection import IRISConnection
 from src.models.test_case import TestCase
 from src.models.test_result import TestResult
+from src.models.audit_log import AuditLog
 
-__all__ = ["Base", "Tenant", "User", "Project", "SourceComponent", "Mapping", "GeneratedClass", "IRISConnection", "TestCase", "TestResult"]
+__all__ = ["Base", "Tenant", "User", "Project", "SourceComponent", "Mapping", "GeneratedClass", "IRISConnection", "TestCase", "TestResult", "AuditLog"]

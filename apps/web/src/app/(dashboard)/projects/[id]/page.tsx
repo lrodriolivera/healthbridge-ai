@@ -6,7 +6,7 @@ import Link from 'next/link'
 import {
   ArrowLeft, Pencil, Trash2, X, Check,
   Upload, Box, Play, Loader2, CheckCircle, AlertCircle,
-  GitBranch, Code2, Rocket, Server, FlaskConical,
+  GitBranch, Code2, Rocket, Server, FlaskConical, FileDown,
 } from 'lucide-react'
 import { api } from '@/lib/api'
 
@@ -371,6 +371,13 @@ export default function ProjectDetailPage() {
                 )}
               </div>
               <div className="flex items-center gap-2">
+                <Link
+                  href={`/projects/${projectId}/export`}
+                  className="btn-secondary"
+                >
+                  <FileDown className="mr-1.5 h-4 w-4" />
+                  Export
+                </Link>
                 <button
                   onClick={() => setEditing(true)}
                   className="btn-secondary"

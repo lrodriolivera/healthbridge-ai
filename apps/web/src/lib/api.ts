@@ -295,6 +295,36 @@ class ApiClient {
   importHL7(projectId: string, messages: any[]) {
     return this.fetch(`/projects/${projectId}/tests/import-hl7`, { method: 'POST', body: JSON.stringify({ messages }) })
   }
+
+  // Audit
+  listAuditLogs(params?: { resource_type?: string; action?: string; skip?: number; limit?: number }) {
+    const qs = new URLSearchParams()
+    if (params?.resource_type) qs.set('resource_type', params.resource_type)
+    if (params?.action) qs.set('action', params.action)
+    qs.set('skip', String(params?.skip || 0))
+    qs.set('limit', String(params?.limit || 50))
+    return this.fetch(`/audit-logs?${qs}`)
+  }
+
+  // Export
+  getProjectSummary(projectId: string) {
+    return this.fetch(`/projects/${projectId}/export/summary`)
+  }
+
+  async downloadDocumentation(projectId: string) {
+    const token = this.getToken()
+    const res = await fetch(`${API_BASE}/projects/${projectId}/export/documentation`, {
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+    })
+    if (!res.ok) throw new Error('Download failed')
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `documentation.md`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 }
 
 export const api = new ApiClient()

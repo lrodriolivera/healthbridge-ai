@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.db import engine
-from src.routers import analysis, auth, codegen, deploy, iris_connections, mappings, projects, testing, uploads
+from src.routers import analysis, audit, auth, codegen, deploy, export, iris_connections, mappings, projects, testing, uploads
 
 
 @asynccontextmanager
@@ -50,6 +50,10 @@ app.include_router(deploy.router, prefix="/api/v1/projects", tags=["deploy"])
 
 # Phase 4 routers
 app.include_router(testing.router, prefix="/api/v1/projects", tags=["testing"])
+
+# Phase 5 routers
+app.include_router(audit.router, prefix="/api/v1/audit-logs", tags=["audit"])
+app.include_router(export.router, prefix="/api/v1/projects", tags=["export"])
 
 
 @app.get("/health")
