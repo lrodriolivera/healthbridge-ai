@@ -125,7 +125,7 @@ export default function TestRunner({ projectId, testIds, testNames, onComplete }
           while (attempts < 60) {
             await new Promise((r) => setTimeout(r, 2000))
             try {
-              const resultsData = await api.listTestResults(projectId, 0, 200)
+              const resultsData = await api.listTestResults(projectId, 0, 100)
               if (resultsData.items && resultsData.items.length > 0) {
                 setResults(resultsData.items)
                 setProgress({ completed: resultsData.items.length, total: resultsData.total || resultsData.items.length })

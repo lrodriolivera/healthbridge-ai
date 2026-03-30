@@ -66,8 +66,8 @@ export default function MappingsPage() {
     setError('')
     try {
       const [mappingsRes, compsRes] = await Promise.all([
-        api.listMappings(projectId, 0, 200),
-        api.listComponents(projectId, 0, 200).catch(() => ({ items: [], total: 0 })),
+        api.listMappings(projectId, 0, 100),
+        api.listComponents(projectId, 0, 100).catch(() => ({ items: [], total: 0 })),
       ])
       setMappings(mappingsRes.items || [])
       setTotal(mappingsRes.total || 0)
