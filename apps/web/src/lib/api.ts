@@ -14,18 +14,7 @@ class ApiClient {
     }
     if (token) headers['Authorization'] = `Bearer ${token}`
 
-    // Ensure trailing slash before query params to avoid FastAPI 307 redirects
-    let normalizedPath = path
-    const qsIndex = normalizedPath.indexOf('?')
-    if (qsIndex === -1) {
-      if (!normalizedPath.endsWith('/')) normalizedPath += '/'
-    } else {
-      const base = normalizedPath.substring(0, qsIndex)
-      const qs = normalizedPath.substring(qsIndex)
-      if (!base.endsWith('/')) normalizedPath = base + '/' + qs
-    }
-
-    const res = await fetch(`${API_BASE}${normalizedPath}`, { ...options, headers })
+    const res = await fetch(`${API_BASE}${path}`, { ...options, headers })
 
     if (res.status === 401) {
       localStorage.removeItem('token')
