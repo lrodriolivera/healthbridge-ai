@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.db import engine
-from src.routers import analysis, audit, auth, codegen, deploy, export, iris_connections, mappings, projects, testing, uploads
+from src.routers import analysis, audit, auth, codegen, deploy, export, field_mappings, iris_connections, mappings, projects, testing, uploads
 
 
 @asynccontextmanager
@@ -42,6 +42,7 @@ app.include_router(analysis.router, prefix="/api/v1/projects", tags=["analysis"]
 # Phase 2 routers
 app.include_router(mappings.router, prefix="/api/v1/projects", tags=["mappings"])
 app.include_router(codegen.router, prefix="/api/v1/projects", tags=["codegen"])
+app.include_router(field_mappings.router, prefix="/api/v1/projects", tags=["field-mappings"])
 
 
 # Phase 3 routers

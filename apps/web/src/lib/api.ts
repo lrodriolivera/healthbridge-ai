@@ -178,6 +178,10 @@ class ApiClient {
     return this.fetch(`/projects/${projectId}/mappings/graph`)
   }
 
+  getFieldMappings(projectId: string) {
+    return this.fetch(`/projects/${projectId}/field-mappings`)
+  }
+
   // Code Generation
   generateAll(projectId: string) {
     return this.fetch(`/projects/${projectId}/generate`, {
