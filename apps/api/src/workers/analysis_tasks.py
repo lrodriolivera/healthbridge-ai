@@ -21,9 +21,11 @@ logger = structlog.get_logger()
 
 
 def _extract_json(text: str) -> dict | None:
-    """Extract JSON from Claude response, handling markdown code blocks."""
+    """Extract JSON from Claude response, handling markdown code blocks. v3"""
     if not text:
         return None
+
+    logger.info("_extract_json called", text_len=len(text), starts_with=text[:40].replace("\n","\\n"))
 
     # Step 1: Strip markdown code fences if present
     stripped = text.strip()
@@ -38,9 +40,12 @@ def _extract_json(text: str) -> dict | None:
 
     # Step 2: Try direct parse
     try:
-        return json.loads(stripped)
-    except (json.JSONDecodeError, TypeError):
-        pass
+        result = json.loads(stripped)
+        logger.info("_extract_json direct parse OK", result_type=type(result).__name__,
+                     has_mapping="proposed_iris_mapping" in result if isinstance(result, dict) else "N/A")
+        return result
+    except (json.JSONDecodeError, TypeError) as e:
+        logger.info("_extract_json direct parse failed", error=str(e)[:100])
 
     # Step 3: Find the LARGEST valid JSON object by depth-matching braces
     best_result = None
