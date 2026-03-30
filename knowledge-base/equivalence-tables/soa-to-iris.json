@@ -1,0 +1,96 @@
+{
+  "description": "Mapping table: Oracle SOA/OSB components → InterSystems IRIS/Ensemble equivalents",
+  "source": "Derived from UC CHRISTUS migration experience",
+  "mappings": [
+    {
+      "source_type": "SOA Composite Service (exposed)",
+      "iris_type": "BusinessService",
+      "iris_base_class": "EnsLib.HTTP.Service",
+      "notes": "HTTP listener that receives requests"
+    },
+    {
+      "source_type": "SOA File Adapter (inbound)",
+      "iris_type": "BusinessService",
+      "iris_base_class": "EnsLib.File.PassthroughService",
+      "notes": "File polling service"
+    },
+    {
+      "source_type": "SOA BPEL Process",
+      "iris_type": "BusinessProcess",
+      "iris_base_class": "Ens.BusinessProcessBPL",
+      "notes": "Orchestration logic. Simple BPEL → BPL, complex → ObjectScript class extending Ens.BusinessProcess"
+    },
+    {
+      "source_type": "SOA Mediator (routing)",
+      "iris_type": "BusinessProcess",
+      "iris_base_class": "EnsLib.HL7.MsgRouter.RoutingEngine",
+      "notes": "Content-based routing"
+    },
+    {
+      "source_type": "SOA XSL Transformation",
+      "iris_type": "DTL",
+      "iris_base_class": "Ens.DataTransformDTL",
+      "notes": "Data transformation. Complex XSL → ObjectScript in BP"
+    },
+    {
+      "source_type": "SOA SOAP Reference (outbound)",
+      "iris_type": "BusinessOperation",
+      "iris_base_class": "Ens.BusinessOperation",
+      "notes": "SOAP client using %Net.HttpRequest"
+    },
+    {
+      "source_type": "SOA JMS Adapter",
+      "iris_type": "BusinessOperation",
+      "iris_base_class": "EnsLib.JMS.Operation",
+      "notes": "JMS messaging (rare in healthcare)"
+    },
+    {
+      "source_type": "SOA Database Adapter",
+      "iris_type": "BusinessOperation",
+      "iris_base_class": "EnsLib.SQL.Operation.GenericOperation",
+      "notes": "SQL database operations"
+    },
+    {
+      "source_type": "Mirth Channel (TCP/MLLP source)",
+      "iris_type": "BusinessService",
+      "iris_base_class": "EnsLib.HL7.Service.TCPService",
+      "notes": "MLLP listener for HL7 messages"
+    },
+    {
+      "source_type": "Mirth Channel (HTTP source)",
+      "iris_type": "BusinessService",
+      "iris_base_class": "EnsLib.HTTP.Service",
+      "notes": "HTTP listener"
+    },
+    {
+      "source_type": "Mirth Transformer (JavaScript)",
+      "iris_type": "BusinessProcess",
+      "iris_base_class": "Ens.BusinessProcess",
+      "notes": "JavaScript logic → ObjectScript in BP"
+    },
+    {
+      "source_type": "Mirth Filter",
+      "iris_type": "BusinessProcess",
+      "iris_base_class": "EnsLib.HL7.MsgRouter.RoutingEngine",
+      "notes": "Message filtering/routing rules"
+    },
+    {
+      "source_type": "Mirth Destination (TCP/MLLP)",
+      "iris_type": "BusinessOperation",
+      "iris_base_class": "EnsLib.HL7.Operation.TCPOperation",
+      "notes": "MLLP sender for HL7 messages"
+    },
+    {
+      "source_type": "Mirth Destination (HTTP)",
+      "iris_type": "BusinessOperation",
+      "iris_base_class": "Ens.BusinessOperation",
+      "notes": "HTTP/SOAP client"
+    },
+    {
+      "source_type": "Mirth Destination (Database)",
+      "iris_type": "BusinessOperation",
+      "iris_base_class": "EnsLib.SQL.Operation.GenericOperation",
+      "notes": "Database writer"
+    }
+  ]
+}

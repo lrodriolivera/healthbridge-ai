@@ -1,0 +1,81 @@
+{
+  "description": "Mapping table: Mirth Connect components → InterSystems IRIS/Ensemble equivalents",
+  "source": "Derived from UC CHRISTUS migration experience",
+  "connector_types": {
+    "source_connectors": {
+      "TCP Listener": {
+        "iris_type": "BusinessService",
+        "iris_class": "EnsLib.HL7.Service.TCPService",
+        "settings": {
+          "Port": "from Mirth channel port",
+          "MessageSchemaCategory": "2.5 or as needed",
+          "TargetConfigNames": "linked BusinessProcess"
+        }
+      },
+      "HTTP Listener": {
+        "iris_type": "BusinessService",
+        "iris_class": "EnsLib.HTTP.Service",
+        "settings": {
+          "Port": "from Mirth channel port"
+        }
+      },
+      "File Reader": {
+        "iris_type": "BusinessService",
+        "iris_class": "EnsLib.File.PassthroughService",
+        "settings": {
+          "FilePath": "from Mirth directory",
+          "FileSpec": "from Mirth file filter"
+        }
+      },
+      "Database Reader": {
+        "iris_type": "BusinessService",
+        "iris_class": "EnsLib.SQL.Service.GenericService",
+        "settings": {
+          "DSN": "configured per environment"
+        }
+      }
+    },
+    "destination_connectors": {
+      "TCP Sender": {
+        "iris_type": "BusinessOperation",
+        "iris_class": "EnsLib.HL7.Operation.TCPOperation",
+        "settings": {
+          "IPAddress": "from Mirth destination host",
+          "Port": "from Mirth destination port"
+        }
+      },
+      "HTTP Sender": {
+        "iris_type": "BusinessOperation",
+        "iris_class": "Ens.BusinessOperation",
+        "notes": "Custom operation using %Net.HttpRequest"
+      },
+      "SOAP Sender": {
+        "iris_type": "BusinessOperation",
+        "iris_class": "Ens.BusinessOperation",
+        "notes": "Custom operation with SOAP envelope construction"
+      },
+      "File Writer": {
+        "iris_type": "BusinessOperation",
+        "iris_class": "EnsLib.File.PassthroughOperation",
+        "settings": {
+          "FilePath": "from Mirth directory",
+          "Filename": "from Mirth file template"
+        }
+      },
+      "Database Writer": {
+        "iris_type": "BusinessOperation",
+        "iris_class": "EnsLib.SQL.Operation.GenericOperation"
+      }
+    }
+  },
+  "transformer_mapping": {
+    "JavaScript Transformer": "ObjectScript in BusinessProcess (Ens.BusinessProcess)",
+    "Mapper Transformer": "DTL (Ens.DataTransformDTL)",
+    "XSLT Transformer": "DTL or ObjectScript depending on complexity",
+    "Message Builder": "Raw string concatenation in ObjectScript"
+  },
+  "filter_mapping": {
+    "JavaScript Filter": "Routing rule in EnsLib.HL7.MsgRouter.RoutingEngine or If/Switch in BPL",
+    "Rule Builder Filter": "HL7 Routing Rule with conditions"
+  }
+}

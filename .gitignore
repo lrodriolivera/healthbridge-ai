@@ -1,0 +1,55 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+
+# Build
+.next/
+.turbo/
+dist/
+build/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python
+*.egg-info/
+*.egg
+.eggs/
+pip-log.txt
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+
+# Docker
+docker-compose.override.yml
+
+# Credentials - NEVER commit
+credencialesAWS/
+credencialesClaude/
+*.csv
+*.pem
+*.key
