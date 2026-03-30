@@ -106,6 +106,10 @@ async def _analyze_project_async(project_id: str, tenant_id: str):
                     failed += 1
                     continue
 
+                # Handle case where Claude returns an array
+                if isinstance(analysis, list):
+                    analysis = analysis[0] if len(analysis) > 0 and isinstance(analysis[0], dict) else {"component_name": filename, "type": "unknown", "raw": analysis}
+
                 component = SourceComponent(
                     project_id=uuid.UUID(project_id),
                     tenant_id=uuid.UUID(tenant_id),
@@ -207,6 +211,10 @@ async def _analyze_single_file_async(project_id: str, tenant_id: str, file_key: 
     if not analysis:
         logger.warning("Failed to parse analysis JSON", filename=filename)
         return
+
+    # Handle case where Claude returns an array instead of a dict
+    if isinstance(analysis, list):
+        analysis = analysis[0] if len(analysis) > 0 and isinstance(analysis[0], dict) else {"component_name": filename, "type": "unknown", "raw": analysis}
 
     with SyncSession() as session:
         component = SourceComponent(
