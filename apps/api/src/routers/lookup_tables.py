@@ -1,0 +1,173 @@
+"""Lookup Tables router — CRUD + ObjectScript globals generation"""
+
+import uuid
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, ConfigDict
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.db import get_db
+from src.middleware.auth import get_current_user
+from src.middleware.tenant import get_current_tenant
+from src.models.lookup_table import LookupTable
+from src.models.tenant import Tenant
+from src.models.user import User
+from src.routers.deps import get_project_for_tenant
+from src.models.project import Project
+
+router = APIRouter()
+
+
+# Schemas
+class LookupTableCreate(BaseModel):
+    name: str
+    description: str | None = None
+    entries: dict = {}
+
+
+class LookupTableUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    entries: dict | None = None
+
+
+class LookupTableResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    project_id: uuid.UUID
+    name: str
+    description: str | None
+    entries: dict
+    created_at: str
+
+
+class LookupTableListResponse(BaseModel):
+    items: list[LookupTableResponse]
+    total: int
+
+
+@router.get("/{project_id}/lookup-tables")
+async def list_lookup_tables(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
+    project: Project = Depends(get_project_for_tenant),
+    tenant: Tenant = Depends(get_current_tenant),
+    db: AsyncSession = Depends(get_db),
+):
+    count = (await db.execute(
+        select(func.count()).select_from(LookupTable).where(
+            LookupTable.project_id == project.id, LookupTable.tenant_id == tenant.id
+        )
+    )).scalar_one()
+
+    result = await db.execute(
+        select(LookupTable)
+        .where(LookupTable.project_id == project.id, LookupTable.tenant_id == tenant.id)
+        .order_by(LookupTable.name)
+        .offset(skip).limit(limit)
+    )
+    return {"items": result.scalars().all(), "total": count}
+
+
+@router.post("/{project_id}/lookup-tables", status_code=201)
+async def create_lookup_table(
+    body: LookupTableCreate,
+    project: Project = Depends(get_project_for_tenant),
+    tenant: Tenant = Depends(get_current_tenant),
+    db: AsyncSession = Depends(get_db),
+):
+    lt = LookupTable(
+        project_id=project.id, tenant_id=tenant.id,
+        name=body.name, description=body.description, entries=body.entries,
+    )
+    db.add(lt)
+    await db.flush()
+    await db.refresh(lt)
+    return lt
+
+
+@router.put("/{project_id}/lookup-tables/{table_id}")
+async def update_lookup_table(
+    table_id: uuid.UUID,
+    body: LookupTableUpdate,
+    project: Project = Depends(get_project_for_tenant),
+    tenant: Tenant = Depends(get_current_tenant),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(LookupTable).where(
+            LookupTable.id == table_id,
+            LookupTable.project_id == project.id,
+            LookupTable.tenant_id == tenant.id,
+        )
+    )
+    lt = result.scalar_one_or_none()
+    if not lt:
+        raise HTTPException(status_code=404, detail="Lookup table not found")
+
+    for field, value in body.model_dump(exclude_unset=True).items():
+        setattr(lt, field, value)
+    await db.flush()
+    await db.refresh(lt)
+    return lt
+
+
+@router.delete("/{project_id}/lookup-tables/{table_id}", status_code=204)
+async def delete_lookup_table(
+    table_id: uuid.UUID,
+    project: Project = Depends(get_project_for_tenant),
+    tenant: Tenant = Depends(get_current_tenant),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(LookupTable).where(
+            LookupTable.id == table_id,
+            LookupTable.project_id == project.id,
+            LookupTable.tenant_id == tenant.id,
+        )
+    )
+    lt = result.scalar_one_or_none()
+    if not lt:
+        raise HTTPException(status_code=404, detail="Lookup table not found")
+    await db.delete(lt)
+
+
+@router.get("/{project_id}/lookup-tables/{table_id}/objectscript")
+async def generate_objectscript(
+    table_id: uuid.UUID,
+    project: Project = Depends(get_project_for_tenant),
+    tenant: Tenant = Depends(get_current_tenant),
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate ObjectScript globals from lookup table entries."""
+    result = await db.execute(
+        select(LookupTable).where(
+            LookupTable.id == table_id,
+            LookupTable.project_id == project.id,
+            LookupTable.tenant_id == tenant.id,
+        )
+    )
+    lt = result.scalar_one_or_none()
+    if not lt:
+        raise HTTPException(status_code=404, detail="Lookup table not found")
+
+    # Generate ObjectScript global set commands
+    global_name = f"^HB.Lookup.{lt.name.replace(' ', '')}"
+    lines = [
+        f"; Lookup Table: {lt.name}",
+        f"; Description: {lt.description or 'N/A'}",
+        f"; Generated by HealthBridge AI",
+        f"; Entries: {len(lt.entries)}",
+        "",
+    ]
+
+    for key, value in sorted(lt.entries.items()):
+        if isinstance(value, dict):
+            for subkey, subval in value.items():
+                lines.append(f'Set {global_name}("{key}","{subkey}") = "{subval}"')
+        else:
+            lines.append(f'Set {global_name}("{key}") = "{value}"')
+
+    code = "\n".join(lines)
+    return {"name": lt.name, "global_name": global_name, "code": code, "entries_count": len(lt.entries)}

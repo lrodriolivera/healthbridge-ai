@@ -8,7 +8,7 @@ from sqlalchemy import text as sa_text
 
 from src.db import engine
 from src.middleware.request_context import RequestContextMiddleware
-from src.routers import analysis, audit, auth, codegen, deploy, export, field_mappings, iris_connections, mappings, projects, settings, testing, uploads
+from src.routers import analysis, audit, auth, codegen, deploy, export, field_mappings, iris_connections, lookup_tables, mappings, projects, settings, testing, uploads
 
 
 @asynccontextmanager
@@ -19,10 +19,40 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="HealthBridge AI",
-    description="Platform for automating healthcare integration migrations to IRIS/TrackCare",
-    version="0.1.0",
+    description="""
+## Healthcare Integration Migration Platform
+
+HealthBridge AI automates migrations from **Mirth Connect, Oracle SOA/OSB, Rhapsody, BizTalk**
+to **InterSystems IRIS/TrackCare** using Claude AI agents.
+
+### Pipeline
+`Upload → Analyze → Map → Generate ObjectScript → Validate → Deploy → Test`
+
+### Authentication
+All endpoints (except `/health`) require a **Bearer token** in the `Authorization` header.
+Obtain a token via `POST /api/v1/auth/login`.
+
+### Multi-Tenant
+All data is isolated by tenant. Each user belongs to one tenant.
+""",
+    version="1.0.0",
     lifespan=lifespan,
     redirect_slashes=False,
+    openapi_tags=[
+        {"name": "auth", "description": "Authentication: register, login, token refresh"},
+        {"name": "projects", "description": "Migration project CRUD"},
+        {"name": "uploads", "description": "File upload and management"},
+        {"name": "analysis", "description": "AI-powered component analysis"},
+        {"name": "mappings", "description": "Source → IRIS mapping management"},
+        {"name": "codegen", "description": "ObjectScript code generation"},
+        {"name": "iris", "description": "IRIS server connection management"},
+        {"name": "deploy", "description": "Deploy generated code to IRIS"},
+        {"name": "testing", "description": "Integration test execution (MLLP/HTTP/SOAP)"},
+        {"name": "audit", "description": "Audit log viewer"},
+        {"name": "export", "description": "Documentation and summary export"},
+        {"name": "settings", "description": "Tenant and user settings"},
+        {"name": "field-mappings", "description": "Detailed field-level mapping data"},
+    ],
 )
 
 from src.config import settings as app_settings
@@ -62,6 +92,7 @@ app.include_router(testing.router, prefix="/api/v1/projects", tags=["testing"])
 app.include_router(audit.router, prefix="/api/v1/audit-logs", tags=["audit"])
 app.include_router(export.router, prefix="/api/v1/projects", tags=["export"])
 app.include_router(settings.router, prefix="/api/v1/settings", tags=["settings"])
+app.include_router(lookup_tables.router, prefix="/api/v1/projects", tags=["lookup-tables"])
 
 
 @app.get("/health")

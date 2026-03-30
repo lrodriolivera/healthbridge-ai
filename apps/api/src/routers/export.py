@@ -73,3 +73,57 @@ async def export_summary_json(
 ):
     components, mappings, generated, test_results = await _load_project_data(project, tenant, db)
     return export_project_summary(project, components, mappings, generated, test_results)
+
+
+@router.get("/{project_id}/export/diff-report")
+async def export_diff_report(
+    project: Project = Depends(get_project_for_tenant),
+    tenant: Tenant = Depends(get_current_tenant),
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate migration diff report comparing analysis vs generated code."""
+    from src.services.diff_report import generate_diff_report
+    from src.services.storage import get_storage
+
+    components, mappings_list, generated_list, _ = await _load_project_data(project, tenant, db)
+
+    storage = get_storage()
+    reports = []
+
+    for comp in components:
+        comp_mappings = [m for m in mappings_list if str(m.source_component_id) == str(comp.id)]
+        comp_generated = [
+            g for g in generated_list
+            if any(str(g.mapping_id) == str(m.id) for m in comp_mappings)
+        ]
+
+        # Load code previews
+        code_previews = {}
+        for g in comp_generated:
+            try:
+                content = await storage.get_file(g.s3_key)
+                code_previews[str(g.id)] = content.decode("utf-8")
+            except Exception:
+                pass
+
+        report = generate_diff_report(
+            component_name=comp.name,
+            analysis=comp.analysis_result or {},
+            mappings=[{"target_class_name": m.target_class_name, "iris_layer": m.iris_layer} for m in comp_mappings],
+            generated_classes=[{
+                "class_name": g.class_name,
+                "validation_status": g.validation_status,
+                "iris_layer": next((m.iris_layer for m in comp_mappings if str(m.id) == str(g.mapping_id)), None),
+            } for g in comp_generated],
+            code_previews=code_previews,
+        )
+        reports.append(report)
+
+    total_coverage = sum(r["coverage_percentage"] for r in reports) / len(reports) if reports else 0
+
+    return {
+        "project": project.name,
+        "total_components": len(reports),
+        "average_coverage": round(total_coverage, 1),
+        "reports": reports,
+    }
