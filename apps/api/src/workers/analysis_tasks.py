@@ -108,7 +108,12 @@ async def _analyze_project_async(project_id: str, tenant_id: str):
 
                 # Handle case where Claude returns an array
                 if isinstance(analysis, list):
-                    analysis = analysis[0] if len(analysis) > 0 and isinstance(analysis[0], dict) else {"component_name": filename, "type": "unknown", "raw": analysis}
+                    best = None
+                    for item in analysis:
+                        if isinstance(item, dict) and ("proposed_iris_mapping" in item or "component_name" in item):
+                            best = item
+                            break
+                    analysis = best if best else (analysis[0] if analysis and isinstance(analysis[0], dict) else {"component_name": filename, "type": "unknown"})
 
                 component = SourceComponent(
                     project_id=uuid.UUID(project_id),
@@ -214,7 +219,20 @@ async def _analyze_single_file_async(project_id: str, tenant_id: str, file_key: 
 
     # Handle case where Claude returns an array instead of a dict
     if isinstance(analysis, list):
-        analysis = analysis[0] if len(analysis) > 0 and isinstance(analysis[0], dict) else {"component_name": filename, "type": "unknown", "raw": analysis}
+        # Find the element that looks like a full analysis (has proposed_iris_mapping or component_name)
+        best = None
+        for item in analysis:
+            if isinstance(item, dict) and ("proposed_iris_mapping" in item or "component_name" in item):
+                best = item
+                break
+        if not best:
+            best = analysis[0] if len(analysis) > 0 and isinstance(analysis[0], dict) else {}
+        analysis = best if best else {"component_name": filename, "type": "unknown"}
+
+    # Validate we have minimum required fields
+    if "proposed_iris_mapping" not in analysis and "component_name" not in analysis:
+        logger.warning("Analysis response missing required fields, re-wrapping", filename=filename)
+        analysis = {"component_name": filename, "type": "unknown", "raw_analysis": analysis}
 
     with SyncSession() as session:
         component = SourceComponent(
