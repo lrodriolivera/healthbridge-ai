@@ -85,7 +85,7 @@ class TestTenantIsolation:
     async def test_cannot_access_other_tenant_project(self, client: AsyncClient):
         # Create tenant A
         reg_a = await client.post("/api/v1/auth/register", json={
-            "email": "a@a.com", "password": "pass", "tenant_name": "Tenant A",
+            "email": "a@a.com", "password": "TestPass1", "tenant_name": "Tenant A",
         })
         token_a = reg_a.json()["access_token"]
 
@@ -97,7 +97,7 @@ class TestTenantIsolation:
 
         # Create tenant B
         reg_b = await client.post("/api/v1/auth/register", json={
-            "email": "b@b.com", "password": "pass", "tenant_name": "Tenant B",
+            "email": "b@b.com", "password": "TestPass1", "tenant_name": "Tenant B",
         })
         token_b = reg_b.json()["access_token"]
 

@@ -17,7 +17,7 @@ async def pipeline(client: AsyncClient):
     # 1. Register
     reg = await client.post("/api/v1/auth/register", json={
         "email": "e2e@pipeline.com",
-        "password": "e2epassword",
+        "password": "E2ePass123",
         "tenant_name": "E2E Pipeline Org",
     })
     assert reg.status_code == 200
@@ -43,14 +43,14 @@ class TestFullPipeline:
     async def test_01_register_and_login(self, client: AsyncClient):
         # Register
         reg = await client.post("/api/v1/auth/register", json={
-            "email": "e2e-auth@test.com", "password": "testpass123", "tenant_name": "Auth Test Org",
+            "email": "e2e-auth@test.com", "password": "TestPass1", "tenant_name": "Auth Test Org",
         })
         assert reg.status_code == 200
         token = reg.json()["access_token"]
 
         # Login with same credentials
         login = await client.post("/api/v1/auth/login", json={
-            "email": "e2e-auth@test.com", "password": "testpass123",
+            "email": "e2e-auth@test.com", "password": "TestPass1",
         })
         assert login.status_code == 200
         assert "access_token" in login.json()
@@ -321,7 +321,7 @@ class TestFullPipeline:
 
         # Register tenant B
         reg_b = await client.post("/api/v1/auth/register", json={
-            "email": "tenant-b@test.com", "password": "passB123", "tenant_name": "Tenant B",
+            "email": "tenant-b@test.com", "password": "PassB1234", "tenant_name": "Tenant B",
         })
         headers_b = {"Authorization": f"Bearer {reg_b.json()['access_token']}"}
 

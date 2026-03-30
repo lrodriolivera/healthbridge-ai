@@ -10,6 +10,10 @@ class Settings(BaseSettings):
     app_name: str = "HealthBridge AI"
     debug: bool = False
     secret_key: str = "change-me-in-production"
+    environment: str = "development"  # development, staging, production
+
+    # CORS
+    cors_allowed_origins: str = "http://localhost:3000"  # comma-separated
 
     # Database
     database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/healthbridge"
@@ -17,24 +21,21 @@ class Settings(BaseSettings):
     # Redis
     redis_url: str = "redis://localhost:6379/0"
 
-    # AWS — Infrastructure (S3, Secrets Manager, etc.) — Account 367509577730
+    # AWS — Infrastructure (S3, Secrets Manager, etc.)
     aws_region: str = "us-east-1"
     s3_bucket: str = "healthbridge-data"
     aws_access_key_id: str = ""
     aws_secret_access_key: str = ""
 
-    # AWS Bedrock — Claude models — Account 962990060849
+    # AWS Bedrock — Claude models
     aws_bedrock_region: str = "us-east-1"
     aws_bedrock_access_key_id: str = ""
     aws_bedrock_secret_access_key: str = ""
 
     # Claude models (Bedrock inference profile IDs)
-    # Analysis uses Opus 4.6 for best understanding of complex integrations
     analysis_model: str = "us.anthropic.claude-opus-4-6-v1"
-    # Code generation uses Sonnet 4.6 (fast) or Opus 4.6 (high complexity)
     default_model: str = "us.anthropic.claude-sonnet-4-6"
     high_complexity_model: str = "us.anthropic.claude-opus-4-6-v1"
-    # Validation uses Sonnet 4.6
     fast_model: str = "us.anthropic.claude-sonnet-4-6"
 
     # Storage
@@ -45,6 +46,15 @@ class Settings(BaseSettings):
     # Auth
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
+    refresh_token_expire_days: int = 7
+
+    # Security
+    login_rate_limit: int = 5  # max attempts per minute
+    min_password_length: int = 8
+
+    @property
+    def cors_origins(self) -> list[str]:
+        return [o.strip() for o in self.cors_allowed_origins.split(",") if o.strip()]
 
 
 settings = Settings()

@@ -45,7 +45,9 @@ app.dependency_overrides[get_db] = _override_get_db
 
 @pytest_asyncio.fixture(autouse=True)
 async def clean_db():
-    """Truncate all tables before each test."""
+    """Truncate all tables and reset rate limiter before each test."""
+    from src.middleware.rate_limiter import rate_limiter
+    rate_limiter._attempts.clear()
     async with test_engine.connect() as conn:
         await conn.execute(text(
             "TRUNCATE TABLE audit_logs, test_results, test_cases, "
