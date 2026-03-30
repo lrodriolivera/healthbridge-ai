@@ -29,9 +29,13 @@ class Settings(BaseSettings):
     aws_bedrock_secret_access_key: str = ""
 
     # Claude models (Bedrock inference profile IDs)
+    # Analysis uses Opus 4.6 for best understanding of complex integrations
+    analysis_model: str = "us.anthropic.claude-opus-4-6-v1"
+    # Code generation uses Sonnet 4.6 (fast) or Opus 4.6 (high complexity)
     default_model: str = "us.anthropic.claude-sonnet-4-6"
     high_complexity_model: str = "us.anthropic.claude-opus-4-6-v1"
-    fast_model: str = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+    # Validation uses Sonnet 4.6
+    fast_model: str = "us.anthropic.claude-sonnet-4-6"
 
     # Storage
     storage_backend: str = "local"  # "local" or "s3"

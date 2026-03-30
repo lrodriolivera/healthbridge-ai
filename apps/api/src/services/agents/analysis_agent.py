@@ -12,7 +12,8 @@ class AnalysisAgent(BaseAgent):
     and produces a structured JSON inventory with proposed IRIS mappings."""
 
     def __init__(self):
-        super().__init__(max_tokens=16384)
+        from src.config import settings
+        super().__init__(model=settings.analysis_model, max_tokens=16384)
         self.system_prompt = self._load_system_prompt()
 
     def _load_system_prompt(self) -> str:
