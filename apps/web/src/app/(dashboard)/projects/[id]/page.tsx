@@ -6,6 +6,7 @@ import Link from 'next/link'
 import {
   ArrowLeft, Pencil, Trash2, X, Check, Lock,
   Upload, Box, Play, Loader2, CheckCircle, AlertCircle,
+  GitBranch, Code2,
 } from 'lucide-react'
 import { api } from '@/lib/api'
 
@@ -101,9 +102,16 @@ export default function ProjectDetailPage() {
   } | null>(null)
   const [triggeringAnalysis, setTriggeringAnalysis] = useState(false)
 
+  // Phase 2 state
+  const [mappingTotal, setMappingTotal] = useState(0)
+  const [mappingConfirmed, setMappingConfirmed] = useState(0)
+  const [generatedTotal, setGeneratedTotal] = useState(0)
+  const [generatedPassed, setGeneratedPassed] = useState(0)
+
   useEffect(() => {
     loadProject()
     loadPhase1Data()
+    loadPhase2Data()
   }, [projectId])
 
   // Poll analysis status when running
@@ -142,6 +150,23 @@ export default function ProjectDetailPage() {
       const status = await api.getAnalysisStatus(projectId)
       setAnalysisStatus(status)
     } catch { /* no analysis yet */ }
+  }
+
+  async function loadPhase2Data() {
+    try {
+      const mappings = await api.listMappings(projectId, 0, 1)
+      setMappingTotal(mappings.total || 0)
+      // Load all to count confirmed
+      if (mappings.total > 0) {
+        const all = await api.listMappings(projectId, 0, 200)
+        setMappingConfirmed((all.items || []).filter((m: any) => m.confirmed_by).length)
+      }
+    } catch { /* no mappings yet */ }
+    try {
+      const generated = await api.listGenerated(projectId, 0, 200)
+      setGeneratedTotal(generated.total || 0)
+      setGeneratedPassed((generated.items || []).filter((g: any) => g.validation_status === 'passed').length)
+    } catch { /* no generated yet */ }
   }
 
   async function handleTriggerAnalysis() {
@@ -512,9 +537,51 @@ export default function ProjectDetailPage() {
           </div>
         </div>
 
+        {/* Mappings section */}
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <GitBranch className="h-5 w-5 text-primary-500" />
+              <div>
+                <h3 className="font-medium text-slate-900">Mappings</h3>
+                {mappingTotal > 0 ? (
+                  <p className="text-sm text-slate-500">
+                    {mappingConfirmed}/{mappingTotal} confirmed
+                  </p>
+                ) : (
+                  <p className="text-sm text-slate-500">No mappings created yet</p>
+                )}
+              </div>
+            </div>
+            <Link href={`/projects/${projectId}/mappings`} className="btn-secondary text-sm">
+              Manage Mappings
+            </Link>
+          </div>
+        </div>
+
+        {/* Generated Code section */}
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Code2 className="h-5 w-5 text-primary-500" />
+              <div>
+                <h3 className="font-medium text-slate-900">Generated Code</h3>
+                {generatedTotal > 0 ? (
+                  <p className="text-sm text-slate-500">
+                    {generatedPassed}/{generatedTotal} passed validation
+                  </p>
+                ) : (
+                  <p className="text-sm text-slate-500">No code generated yet</p>
+                )}
+              </div>
+            </div>
+            <Link href={`/projects/${projectId}/generated`} className="btn-secondary text-sm">
+              View Generated
+            </Link>
+          </div>
+        </div>
+
         {/* Future phases - placeholders */}
-        <PlaceholderSection title="Mappings" phase="Phase 2" />
-        <PlaceholderSection title="Generated Code" phase="Phase 2" />
         <PlaceholderSection title="Validation Results" phase="Phase 3" />
         <PlaceholderSection title="Deployment" phase="Phase 4" />
         <PlaceholderSection title="Test Results" phase="Phase 5" />

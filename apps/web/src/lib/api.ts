@@ -134,6 +134,96 @@ class ApiClient {
       body: JSON.stringify({ file_key: fileKey, media_type: mediaType }),
     })
   }
+
+  // Mappings
+  listMappings(projectId: string, skip = 0, limit = 50) {
+    return this.fetch(`/projects/${projectId}/mappings?skip=${skip}&limit=${limit}`)
+  }
+
+  createMapping(projectId: string, data: any) {
+    return this.fetch(`/projects/${projectId}/mappings`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  updateMapping(projectId: string, mappingId: string, data: any) {
+    return this.fetch(`/projects/${projectId}/mappings/${mappingId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    })
+  }
+
+  deleteMapping(projectId: string, mappingId: string) {
+    return this.fetch(`/projects/${projectId}/mappings/${mappingId}`, {
+      method: 'DELETE',
+    })
+  }
+
+  autoGenerateMappings(projectId: string) {
+    return this.fetch(`/projects/${projectId}/mappings/auto-generate`, {
+      method: 'POST',
+    })
+  }
+
+  confirmMapping(projectId: string, mappingId: string) {
+    return this.fetch(`/projects/${projectId}/mappings/${mappingId}/confirm`, {
+      method: 'POST',
+    })
+  }
+
+  getMappingGraph(projectId: string) {
+    return this.fetch(`/projects/${projectId}/mappings/graph`)
+  }
+
+  // Code Generation
+  generateAll(projectId: string) {
+    return this.fetch(`/projects/${projectId}/generate`, {
+      method: 'POST',
+    })
+  }
+
+  generateSingle(projectId: string, mappingId: string) {
+    return this.fetch(`/projects/${projectId}/generate/${mappingId}`, {
+      method: 'POST',
+    })
+  }
+
+  listGenerated(projectId: string, skip = 0, limit = 50) {
+    return this.fetch(`/projects/${projectId}/generated?skip=${skip}&limit=${limit}`)
+  }
+
+  getGenerated(projectId: string, classId: string) {
+    return this.fetch(`/projects/${projectId}/generated/${classId}`)
+  }
+
+  regenerate(projectId: string, classId: string, feedback?: string) {
+    return this.fetch(`/projects/${projectId}/generated/${classId}/regenerate`, {
+      method: 'POST',
+      body: JSON.stringify({ feedback }),
+    })
+  }
+
+  async downloadGenerated(projectId: string, classId: string) {
+    const token = this.getToken()
+    const headers: Record<string, string> = {}
+    if (token) headers['Authorization'] = `Bearer ${token}`
+    const res = await fetch(`${API_BASE}/projects/${projectId}/generated/${classId}/download`, { headers })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    return res.blob()
+  }
+
+  async downloadAllGenerated(projectId: string) {
+    const token = this.getToken()
+    const headers: Record<string, string> = {}
+    if (token) headers['Authorization'] = `Bearer ${token}`
+    const res = await fetch(`${API_BASE}/projects/${projectId}/generated/download-all`, {
+      method: 'POST',
+      headers,
+    })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    return res.blob()
+  }
 }
 
 export const api = new ApiClient()

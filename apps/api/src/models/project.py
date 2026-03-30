@@ -36,3 +36,4 @@ class Project(TenantMixin, TimestampMixin, Base):
     tenant = relationship("Tenant", back_populates="projects")
     creator = relationship("User", foreign_keys=[created_by])
     source_components = relationship("SourceComponent", back_populates="project", cascade="all, delete-orphan")
+    mappings = relationship("Mapping", back_populates="project", cascade="all, delete-orphan")
