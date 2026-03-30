@@ -1,0 +1,25 @@
+# Copy to terraform.tfvars and fill in values
+
+project     = "healthbridge"
+environment = "dev"
+aws_region  = "us-east-1"
+
+# Database
+db_password = "CHANGE_ME_STRONG_PASSWORD"
+
+# Domain (leave empty for dev)
+domain_name         = ""
+acm_certificate_arn = ""
+
+# Bedrock credentials (account 962990060849)
+bedrock_access_key_id     = ""
+bedrock_secret_access_key = ""
+bedrock_region            = "us-east-1"
+
+# ECS sizing (dev defaults are small)
+api_cpu           = 512
+api_memory        = 1024
+api_desired_count = 1
+worker_cpu        = 1024
+worker_memory     = 2048
+worker_desired_count = 1

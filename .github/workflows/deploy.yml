@@ -1,0 +1,108 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+
+env:
+  AWS_REGION: us-east-1
+  ECS_CLUSTER: healthbridge-dev-cluster
+
+jobs:
+  test:
+    name: Test
+    uses: ./.github/workflows/ci.yml
+
+  build-and-deploy:
+    name: Build & Deploy
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push API image
+        env:
+          ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -f infra/docker/api.Dockerfile -t $ECR_REGISTRY/healthbridge-dev-api:$IMAGE_TAG -t $ECR_REGISTRY/healthbridge-dev-api:latest apps/api
+          docker push $ECR_REGISTRY/healthbridge-dev-api:$IMAGE_TAG
+          docker push $ECR_REGISTRY/healthbridge-dev-api:latest
+
+      - name: Build and push Worker image
+        env:
+          ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -f infra/docker/worker.Dockerfile -t $ECR_REGISTRY/healthbridge-dev-worker:$IMAGE_TAG -t $ECR_REGISTRY/healthbridge-dev-worker:latest apps/api
+          docker push $ECR_REGISTRY/healthbridge-dev-worker:$IMAGE_TAG
+          docker push $ECR_REGISTRY/healthbridge-dev-worker:latest
+
+      - name: Build and push Web image
+        env:
+          ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -f infra/docker/web.Dockerfile -t $ECR_REGISTRY/healthbridge-dev-web:$IMAGE_TAG -t $ECR_REGISTRY/healthbridge-dev-web:latest apps/web
+          docker push $ECR_REGISTRY/healthbridge-dev-web:$IMAGE_TAG
+          docker push $ECR_REGISTRY/healthbridge-dev-web:latest
+
+      - name: Run database migrations
+        env:
+          ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+        run: |
+          # Run migrations as a one-off ECS task
+          aws ecs run-task \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --task-definition healthbridge-dev-api \
+            --launch-type FARGATE \
+            --network-configuration "awsvpcConfiguration={subnets=[${{ secrets.PRIVATE_SUBNET_IDS }}],securityGroups=[${{ secrets.ECS_SECURITY_GROUP_ID }}]}" \
+            --overrides '{"containerOverrides":[{"name":"api","command":["python","-m","alembic","upgrade","head"]}]}' \
+            --count 1
+
+      - name: Deploy API service
+        run: |
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service healthbridge-dev-api \
+            --force-new-deployment
+
+      - name: Deploy Worker service
+        run: |
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service healthbridge-dev-worker \
+            --force-new-deployment
+
+      - name: Wait for API deployment
+        run: |
+          aws ecs wait services-stable \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services healthbridge-dev-api
+          echo "API deployment complete"
+
+      - name: Verify deployment
+        run: |
+          ALB_DNS=$(aws elbv2 describe-load-balancers --names healthbridge-dev-alb --query 'LoadBalancers[0].DNSName' --output text)
+          curl -sf "http://$ALB_DNS/health" || (echo "Health check failed!" && exit 1)
+          echo "Deployment verified: $ALB_DNS"
