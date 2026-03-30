@@ -33,7 +33,7 @@ async def trigger_analysis(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    if project.status == "analyzing":
+    if project.status in ("analyzing", "queued_analysis"):
         raise HTTPException(status_code=409, detail="Analysis already in progress")
 
     task = analyze_project_task.delay(str(project.id), str(tenant.id))
