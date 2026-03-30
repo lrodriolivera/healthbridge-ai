@@ -9,6 +9,9 @@ import {
   Clock, AlertCircle,
 } from 'lucide-react'
 import { api } from '@/lib/api'
+import dynamic from 'next/dynamic'
+
+const ComponentFlowDiagram = dynamic(() => import('@/components/component-flow-diagram'), { ssr: false })
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -491,6 +494,14 @@ export default function MappingsPage() {
                   {/* Expanded Content */}
                   {isExpanded && (
                     <div className="border-t border-slate-100">
+                      {/* Flow Diagram */}
+                      <div className="p-5 border-b border-slate-100">
+                        <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
+                          Component Flow Diagram
+                        </h3>
+                        <ComponentFlowDiagram component={comp} />
+                      </div>
+
                       {/* Three-column layout: Source | Transformation | Target */}
                       <div className="flex flex-col lg:flex-row">
                         {/* ===== SOURCE PANEL (left ~40%) ===== */}
