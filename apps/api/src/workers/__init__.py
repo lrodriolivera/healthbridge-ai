@@ -19,4 +19,9 @@ celery_app.conf.update(
     result_expires=3600,
 )
 
-celery_app.autodiscover_tasks(["src.workers"])
+celery_app.autodiscover_tasks([
+    "src.workers.analysis_tasks",
+    "src.workers.codegen_tasks",
+    "src.workers.deploy_tasks",
+    "src.workers.testing_tasks",
+])

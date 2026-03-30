@@ -28,10 +28,10 @@ class Settings(BaseSettings):
     aws_bedrock_access_key_id: str = ""
     aws_bedrock_secret_access_key: str = ""
 
-    # Claude models (Bedrock model IDs)
-    default_model: str = "anthropic.claude-sonnet-4-6"
-    high_complexity_model: str = "anthropic.claude-opus-4-6-v1"
-    fast_model: str = "anthropic.claude-haiku-4-5-20251001-v1:0"
+    # Claude models (Bedrock inference profile IDs)
+    default_model: str = "us.anthropic.claude-sonnet-4-6"
+    high_complexity_model: str = "us.anthropic.claude-opus-4-6-v1"
+    fast_model: str = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
 
     # Storage
     storage_backend: str = "local"  # "local" or "s3"
