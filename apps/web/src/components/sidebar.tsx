@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { FolderOpen, Server, ScrollText, Settings, Shield, LogOut, Menu, X } from 'lucide-react'
 import { api } from '@/lib/api'
 import { removeToken } from '@/lib/auth'
+import ThemeToggle from '@/components/theme-toggle'
 
 interface User {
   id: string
@@ -84,8 +85,8 @@ export default function Sidebar() {
         </ul>
       </nav>
 
-      {/* User section */}
-      <div className="border-t border-slate-200 px-3 py-4">
+      {/* Theme + User section */}
+      <div className="border-t border-slate-200 dark:border-slate-700 px-3 py-4">
         <div className="flex items-center gap-3 rounded-lg px-3 py-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-100 text-sm font-medium text-primary-700">
             {user?.email?.charAt(0).toUpperCase() || '?'}
@@ -96,9 +97,10 @@ export default function Sidebar() {
             </p>
             <p className="text-xs text-slate-400">{user?.role || ''}</p>
           </div>
+          <ThemeToggle />
           <button
             onClick={handleLogout}
-            className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+            className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700"
             title="Logout"
           >
             <LogOut className="h-4 w-4" />

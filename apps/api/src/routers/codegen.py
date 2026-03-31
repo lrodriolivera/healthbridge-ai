@@ -249,11 +249,98 @@ async def regenerate(
     if not gc:
         raise HTTPException(status_code=404, detail="Generated class not found")
 
+    # Save current version before regenerating
+    storage = get_storage()
+    try:
+        current_code = await storage.get_file(gc.s3_key)
+        history_key = f"{gc.s3_key}.v{gc.version}"
+        await storage.put_file(history_key, current_code, "text/plain")
+    except Exception:
+        pass  # Best effort — don't block regeneration
+
     task = generate_mapping_task.delay(
         str(gc.mapping_id), str(project.id), str(tenant.id),
         feedback=body.feedback,
     )
     return {"task_id": task.id, "status": "queued"}
+
+
+@router.get("/{project_id}/generated/{class_id}/versions")
+async def list_versions(
+    class_id: uuid.UUID,
+    project: Project = Depends(get_project_for_tenant),
+    tenant: Tenant = Depends(get_current_tenant),
+    db: AsyncSession = Depends(get_db),
+):
+    """List all versions of a generated class."""
+    result = await db.execute(
+        select(GeneratedClass).where(
+            GeneratedClass.id == class_id,
+            GeneratedClass.project_id == project.id,
+            GeneratedClass.tenant_id == tenant.id,
+        )
+    )
+    gc = result.scalar_one_or_none()
+    if not gc:
+        raise HTTPException(status_code=404, detail="Generated class not found")
+
+    storage = get_storage()
+    versions = []
+    for v in range(1, gc.version + 1):
+        key = f"{gc.s3_key}.v{v}" if v < gc.version else gc.s3_key
+        try:
+            code = await storage.get_file(key)
+            versions.append({"version": v, "size": len(code), "current": v == gc.version})
+        except Exception:
+            pass
+
+    return {"class_name": gc.class_name, "current_version": gc.version, "versions": versions}
+
+
+@router.get("/{project_id}/generated/{class_id}/diff")
+async def diff_versions(
+    class_id: uuid.UUID,
+    v1: int = Query(1),
+    v2: int = Query(0, description="0 = current version"),
+    project: Project = Depends(get_project_for_tenant),
+    tenant: Tenant = Depends(get_current_tenant),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get diff between two versions of a generated class."""
+    import difflib
+
+    result = await db.execute(
+        select(GeneratedClass).where(
+            GeneratedClass.id == class_id,
+            GeneratedClass.project_id == project.id,
+            GeneratedClass.tenant_id == tenant.id,
+        )
+    )
+    gc = result.scalar_one_or_none()
+    if not gc:
+        raise HTTPException(status_code=404, detail="Generated class not found")
+
+    storage = get_storage()
+    v2_actual = v2 if v2 > 0 else gc.version
+
+    try:
+        key1 = f"{gc.s3_key}.v{v1}" if v1 < gc.version else gc.s3_key
+        key2 = f"{gc.s3_key}.v{v2_actual}" if v2_actual < gc.version else gc.s3_key
+        code1 = (await storage.get_file(key1)).decode("utf-8").splitlines()
+        code2 = (await storage.get_file(key2)).decode("utf-8").splitlines()
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Version not found")
+
+    diff = list(difflib.unified_diff(code1, code2, fromfile=f"v{v1}", tofile=f"v{v2_actual}", lineterm=""))
+
+    return {
+        "class_name": gc.class_name,
+        "from_version": v1,
+        "to_version": v2_actual,
+        "diff": "\n".join(diff),
+        "additions": sum(1 for l in diff if l.startswith("+")),
+        "deletions": sum(1 for l in diff if l.startswith("-")),
+    }
 
 
 @router.post("/{project_id}/generated/download-all")
