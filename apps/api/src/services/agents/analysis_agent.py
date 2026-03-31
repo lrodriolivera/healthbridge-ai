@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+from src.utils.phi_sanitizer import sanitize_for_analysis
 from .base_agent import BaseAgent
 
 PROMPTS_DIR = Path(__file__).parent / "prompts"
@@ -49,21 +50,23 @@ Classification criteria:
         MAX_FILE_SIZE = 15000  # chars per file
         MAX_TOTAL_SIZE = 400000  # ~100K tokens total prompt
 
-        content_parts = [f"## composite.xml\n```xml\n{composite_xml[:MAX_FILE_SIZE]}\n```"]
+        # Sanitize PHI before sending to Claude
+        safe_composite = sanitize_for_analysis(composite_xml[:MAX_FILE_SIZE], "xml")
+        content_parts = [f"## composite.xml\n```xml\n{safe_composite}\n```"]
         total_size = len(composite_xml[:MAX_FILE_SIZE])
 
         # Include BPEL files (most important for business logic)
         for name, content in bpel_files.items():
-            truncated = content[:MAX_FILE_SIZE]
+            truncated = sanitize_for_analysis(content[:MAX_FILE_SIZE], "xml")
             if total_size + len(truncated) > MAX_TOTAL_SIZE:
-                content_parts.append(f"## BPEL: {name}\n(truncated — {len(content)} chars, showing first {MAX_FILE_SIZE})\n```xml\n{content[:5000]}\n```")
+                content_parts.append(f"## BPEL: {name}\n(truncated — {len(content)} chars)\n```xml\n{sanitize_for_analysis(content[:5000], 'xml')}\n```")
                 break
             content_parts.append(f"## BPEL: {name}\n```xml\n{truncated}\n```")
             total_size += len(truncated)
 
         # Include XSL files (transformations)
         for name, content in xsl_files.items():
-            truncated = content[:MAX_FILE_SIZE]
+            truncated = sanitize_for_analysis(content[:MAX_FILE_SIZE], "xml")
             if total_size + len(truncated) > MAX_TOTAL_SIZE:
                 content_parts.append(f"\n(Remaining {len(xsl_files)} XSL files omitted due to size. File names: {', '.join(xsl_files.keys())})")
                 break
@@ -106,10 +109,11 @@ Source files:
 
     async def analyze_mirth_channel(self, channel_xml: str) -> dict:
         """Analyze a Mirth Connect channel XML."""
+        safe_xml = sanitize_for_analysis(channel_xml, "xml")
         messages = [
             {
                 "role": "user",
-                "content": f"Analyze this Mirth Connect channel and produce a structured JSON inventory:\n\n```xml\n{channel_xml}\n```",
+                "content": f"Analyze this Mirth Connect channel and produce a structured JSON inventory:\n\n```xml\n{safe_xml}\n```",
             }
         ]
 

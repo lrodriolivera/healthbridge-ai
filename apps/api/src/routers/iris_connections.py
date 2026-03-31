@@ -53,12 +53,19 @@ async def create_connection(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    from src.config import settings as app_settings
+    from src.utils.encryption import encrypt_value
+
     conn = IRISConnection(
         tenant_id=tenant.id,
         name=body.name,
         base_url=body.base_url.rstrip("/"),
         namespace=body.namespace,
-        credentials={"username": body.username, "password": body.password},
+        credentials={
+            "username": body.username,
+            "password": encrypt_value(body.password, app_settings.secret_key),
+            "encrypted": True,
+        },
         ssl_verify=body.ssl_verify,
         environment=body.environment,
     )
@@ -138,11 +145,21 @@ async def test_connection(
     if not conn:
         raise HTTPException(status_code=404, detail="Connection not found")
 
+    from src.config import settings as app_settings
+    from src.utils.encryption import decrypt_value
+
+    password = conn.credentials.get("password", "")
+    if conn.credentials.get("encrypted"):
+        try:
+            password = decrypt_value(password, app_settings.secret_key)
+        except Exception:
+            raise HTTPException(status_code=500, detail="Failed to decrypt credentials")
+
     client = AtelierClient(
         base_url=conn.base_url,
         namespace=conn.namespace,
         username=conn.credentials.get("username", ""),
-        password=conn.credentials.get("password", ""),
+        password=password,
         ssl_verify=conn.ssl_verify,
     )
 
