@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text as sa_text
 
 from src.db import engine
+from src.middleware.audit_logger import AuditLoggerMiddleware
 from src.middleware.request_context import RequestContextMiddleware
 from src.middleware.security_headers import SecurityHeadersMiddleware
 from src.routers import analysis, audit, auth, codegen, deploy, export, field_mappings, iris_connections, lookup_tables, mappings, projects, settings, templates, testing, uploads
@@ -66,6 +67,7 @@ app.add_middleware(
     allow_headers=["Content-Type", "Authorization", "X-Request-ID"],
 )
 app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(AuditLoggerMiddleware)
 app.add_middleware(RequestContextMiddleware)
 
 # Phase 0 routers

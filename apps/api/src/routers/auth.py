@@ -2,7 +2,7 @@
 
 import re
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -83,7 +83,21 @@ async def register(body: RegisterRequest, request: Request, db: AsyncSession = D
     db.add(user)
     await db.flush()
 
-    return TokenResponse(access_token=_build_token(user))
+    token = _build_token(user)
+    response = Response(
+        content=TokenResponse(access_token=token).model_dump_json(),
+        media_type="application/json",
+    )
+    response.set_cookie(
+        key="auth_token",
+        value=token,
+        httponly=True,
+        secure=settings.environment == "production",
+        samesite="lax",
+        max_age=settings.access_token_expire_minutes * 60,
+        path="/",
+    )
+    return response
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -100,7 +114,30 @@ async def login(body: LoginRequest, request: Request, db: AsyncSession = Depends
     if not user or not verify_password(body.password, user.password_hash):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
 
-    return TokenResponse(access_token=_build_token(user))
+    token = _build_token(user)
+    response = Response(
+        content=TokenResponse(access_token=token).model_dump_json(),
+        media_type="application/json",
+    )
+    # Set httpOnly cookie for browser security (XSS protection)
+    response.set_cookie(
+        key="auth_token",
+        value=token,
+        httponly=True,
+        secure=settings.environment == "production",
+        samesite="lax",
+        max_age=settings.access_token_expire_minutes * 60,
+        path="/",
+    )
+    return response
+
+
+@router.post("/logout")
+async def logout():
+    """Clear auth cookie."""
+    response = Response(content='{"status":"ok"}', media_type="application/json")
+    response.delete_cookie("auth_token", path="/")
+    return response
 
 
 @router.get("/me", response_model=UserResponse)
@@ -114,10 +151,32 @@ async def refresh(body: RefreshRequest, db: AsyncSession = Depends(get_db)):
     if payload is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
 
+    # Only allow refresh if token expires within the next 30 minutes
+    import time
+    exp = payload.get("exp", 0)
+    now = time.time()
+    time_until_expiry = exp - now
+
+    if time_until_expiry > 1800:  # More than 30 min left
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Token still valid. Refresh only when close to expiry.",
+        )
+
     user_id = payload.get("sub")
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
 
-    return TokenResponse(access_token=_build_token(user))
+    token = _build_token(user)
+    response = Response(
+        content=TokenResponse(access_token=token).model_dump_json(),
+        media_type="application/json",
+    )
+    response.set_cookie(
+        key="auth_token", value=token, httponly=True,
+        secure=settings.environment == "production",
+        samesite="lax", max_age=settings.access_token_expire_minutes * 60, path="/",
+    )
+    return response
