@@ -32,6 +32,9 @@ aiohttp>=3.9.0
 pydantic[email]>=2.6.0
 pydantic-settings>=2.1.0
 
+# GraphQL
+strawberry-graphql[fastapi]>=0.220.0
+
 # File parsing
 lxml>=5.1.0
 defusedxml>=0.7.1

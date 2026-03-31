@@ -95,6 +95,10 @@ app.include_router(settings.router, prefix="/api/v1/settings", tags=["settings"]
 app.include_router(lookup_tables.router, prefix="/api/v1/projects", tags=["lookup-tables"])
 app.include_router(templates.router, prefix="/api/v1/templates", tags=["templates"])
 
+# GraphQL
+from src.graphql_schema import graphql_router
+app.include_router(graphql_router, prefix="/graphql")
+
 
 @app.get("/health")
 async def health_check():
