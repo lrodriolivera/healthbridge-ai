@@ -11,6 +11,7 @@ from src.config import settings
 from src.db import SyncSession
 from src.models.project import Project
 from src.models.source_component import SourceComponent
+from src.models.tenant import Tenant
 from src.services.agents.analysis_agent import AnalysisAgent
 from src.services.file_parser.jar_parser import JARParser
 from src.services.file_parser.mirth_parser import MirthParser
@@ -188,6 +189,17 @@ async def _analyze_project_async(project_id: str, tenant_id: str):
             analyzed=analyzed,
             failed=failed,
         )
+
+        # Send webhook notification
+        tenant = session.get(Tenant, uuid.UUID(tenant_id))
+        if tenant and tenant.settings:
+            webhook_url = tenant.settings.get("webhook_url")
+            if webhook_url and tenant.settings.get("notify_on_analysis", True):
+                from src.services.notifications import NotificationService
+                import asyncio
+                asyncio.run(NotificationService().notify_analysis_complete(
+                    webhook_url, project.name, analyzed,
+                ))
 
 
 async def _analyze_image_async(project_id: str, tenant_id: str, image_key: str):

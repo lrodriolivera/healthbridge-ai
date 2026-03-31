@@ -172,6 +172,17 @@ async def _deploy_project_async(
             failed=failed_count,
         )
 
+        # Send webhook notification
+        from src.models.tenant import Tenant
+        tenant = session.get(Tenant, uuid.UUID(tenant_id))
+        if tenant and tenant.settings:
+            webhook_url = tenant.settings.get("webhook_url")
+            if webhook_url and tenant.settings.get("notify_on_deploy", True):
+                from src.services.notifications import NotificationService
+                asyncio.run(NotificationService().notify_deploy_complete(
+                    webhook_url, project.name, deployed_count, failed_count,
+                ))
+
 
 @celery_app.task(name="deploy_project", bind=True, max_retries=0)
 def deploy_project_task(

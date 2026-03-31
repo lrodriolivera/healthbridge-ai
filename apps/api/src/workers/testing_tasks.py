@@ -75,6 +75,18 @@ async def _execute_all_async(
                 session.add(tr)
                 session.commit()
 
+        # Send webhook notification
+        passed = sum(1 for tc in test_cases for _ in [1] if session.query(TestResult).filter(TestResult.test_case_id == tc.id, TestResult.status == "pass").first())
+        failed = sum(1 for tc in test_cases for _ in [1] if session.query(TestResult).filter(TestResult.test_case_id == tc.id, TestResult.status == "fail").first())
+        from src.models.tenant import Tenant
+        tenant = session.get(Tenant, uuid.UUID(tenant_id))
+        if tenant and tenant.settings:
+            webhook_url = tenant.settings.get("webhook_url")
+            if webhook_url and tenant.settings.get("notify_on_test", True):
+                from src.services.notifications import NotificationService
+                asyncio.run(NotificationService().notify_tests_complete(
+                    webhook_url, "Tests", passed, failed, len(test_cases) - passed - failed,
+                ))
 
 @celery_app.task(name="execute_all_tests", bind=True, max_retries=0)
 def execute_all_tests_task(self, project_id: str, tenant_id: str, connection_id: str, user_id: str):

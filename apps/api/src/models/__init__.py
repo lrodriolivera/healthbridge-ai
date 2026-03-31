@@ -10,5 +10,6 @@ from src.models.test_case import TestCase
 from src.models.test_result import TestResult
 from src.models.audit_log import AuditLog
 from src.models.lookup_table import LookupTable
+from src.models.shared_template import SharedTemplate
 
-__all__ = ["Base", "Tenant", "User", "Project", "SourceComponent", "Mapping", "GeneratedClass", "IRISConnection", "TestCase", "TestResult", "AuditLog", "LookupTable"]
+__all__ = ["Base", "Tenant", "User", "Project", "SourceComponent", "Mapping", "GeneratedClass", "IRISConnection", "TestCase", "TestResult", "AuditLog", "LookupTable", "SharedTemplate"]

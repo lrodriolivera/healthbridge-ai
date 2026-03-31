@@ -8,7 +8,7 @@ from sqlalchemy import text as sa_text
 
 from src.db import engine
 from src.middleware.request_context import RequestContextMiddleware
-from src.routers import analysis, audit, auth, codegen, deploy, export, field_mappings, iris_connections, lookup_tables, mappings, projects, settings, testing, uploads
+from src.routers import analysis, audit, auth, codegen, deploy, export, field_mappings, iris_connections, lookup_tables, mappings, projects, settings, templates, testing, uploads
 
 
 @asynccontextmanager
@@ -93,6 +93,7 @@ app.include_router(audit.router, prefix="/api/v1/audit-logs", tags=["audit"])
 app.include_router(export.router, prefix="/api/v1/projects", tags=["export"])
 app.include_router(settings.router, prefix="/api/v1/settings", tags=["settings"])
 app.include_router(lookup_tables.router, prefix="/api/v1/projects", tags=["lookup-tables"])
+app.include_router(templates.router, prefix="/api/v1/templates", tags=["templates"])
 
 
 @app.get("/health")

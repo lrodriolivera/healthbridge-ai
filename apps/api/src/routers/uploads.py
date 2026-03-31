@@ -65,15 +65,16 @@ async def upload_direct(
         raise HTTPException(status_code=400, detail="Filename required")
 
     content = await file.read()
-    max_bytes = settings.max_upload_size_mb * 1024 * 1024
-    if len(content) > max_bytes:
-        raise HTTPException(
-            status_code=413,
-            detail=f"File too large. Max size: {settings.max_upload_size_mb}MB",
-        )
+
+    # Validate file: size, extension, MIME, ZIP bomb protection
+    from src.utils.file_validation import FileValidationError, validate_upload
+    try:
+        clean_name = validate_upload(content, file.filename, file.content_type, settings.max_upload_size_mb)
+    except FileValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
     storage = get_storage()
-    key = _make_key(tenant.id, project.id, file.filename)
+    key = _make_key(tenant.id, project.id, clean_name)
     await storage.put_file(key, content, file.content_type or "application/octet-stream")
 
     return UploadConfirmResponse(file_key=key, status="uploaded")
