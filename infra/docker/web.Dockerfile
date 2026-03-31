@@ -17,5 +17,9 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 
+# Patch server.js to always listen on 0.0.0.0 regardless of HOSTNAME env
+RUN sed -i 's/hostname: hostname/hostname: "0.0.0.0"/' server.js || true
+RUN sed -i "s/process.env.HOSTNAME/\"0.0.0.0\"/g" server.js || true
+
 EXPOSE 3000
 CMD ["node", "server.js"]

@@ -58,8 +58,8 @@ resource "aws_ecs_task_definition" "web" {
   family                   = "${local.name_prefix}-web"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
-  cpu                      = 256
-  memory                   = 512
+  cpu                      = 512
+  memory                   = 1024
   execution_role_arn       = aws_iam_role.ecs_execution.arn
 
   container_definitions = jsonencode([{
@@ -81,8 +81,8 @@ resource "aws_ecs_task_definition" "web" {
       command     = ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3000/', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))\""]
       interval    = 30
       timeout     = 5
-      retries     = 3
-      startPeriod = 60
+      retries     = 5
+      startPeriod = 120
     }
   }])
 }
