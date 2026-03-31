@@ -97,6 +97,20 @@ resource "aws_wafv2_web_acl" "main" {
       managed_rule_group_statement {
         name        = "AWSManagedRulesCommonRuleSet"
         vendor_name = "AWS"
+
+        rule_action_override {
+          name = "SizeRestrictions_BODY"
+          action_to_use {
+            count {}
+          }
+        }
+
+        rule_action_override {
+          name = "CrossSiteScripting_BODY"
+          action_to_use {
+            count {}
+          }
+        }
       }
     }
     visibility_config {
