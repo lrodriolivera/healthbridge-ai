@@ -45,7 +45,7 @@ resource "aws_ecs_task_definition" "api" {
       { name = "AWS_BEDROCK_REGION", value = var.bedrock_region },
       { name = "AWS_BEDROCK_ACCESS_KEY_ID", value = var.bedrock_access_key_id },
       { name = "AWS_BEDROCK_SECRET_ACCESS_KEY", value = var.bedrock_secret_access_key },
-      { name = "CORS_ALLOWED_ORIGINS", value = var.domain_name != "" ? "https://${var.domain_name}" : "http://localhost:3000" },
+      { name = "CORS_ALLOWED_ORIGINS", value = var.domain_name != "" ? "https://${var.domain_name}" : "http://${aws_lb.main.dns_name},http://localhost:3000" },
     ]
     logConfiguration = {
       logDriver = "awslogs"

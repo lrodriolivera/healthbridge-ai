@@ -33,3 +33,7 @@ output "s3_bucket" {
 output "ecs_cluster" {
   value = aws_ecs_cluster.main.name
 }
+
+output "app_url" {
+  value = "http://${aws_lb.main.dns_name}"
+}

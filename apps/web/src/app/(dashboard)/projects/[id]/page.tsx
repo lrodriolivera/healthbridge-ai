@@ -1,5 +1,4 @@
 'use client'
-
 import { useState, useEffect, FormEvent } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
@@ -59,8 +58,6 @@ function formatDate(dateStr: string): string {
     minute: '2-digit',
   })
 }
-
-
 export default function ProjectDetailPage() {
   const router = useRouter()
   const params = useParams()
