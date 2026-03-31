@@ -8,12 +8,13 @@ from src.config import settings
 
 class S3StorageService:
     def __init__(self):
-        self.s3 = boto3.client(
-            "s3",
-            region_name=settings.aws_region,
-            aws_access_key_id=settings.aws_access_key_id,
-            aws_secret_access_key=settings.aws_secret_access_key,
-        )
+        # Use explicit credentials if provided, otherwise fall back to
+        # IAM role credentials (ECS task role, EC2 instance profile, etc.)
+        kwargs = {"region_name": settings.aws_region}
+        if settings.aws_access_key_id and settings.aws_secret_access_key:
+            kwargs["aws_access_key_id"] = settings.aws_access_key_id
+            kwargs["aws_secret_access_key"] = settings.aws_secret_access_key
+        self.s3 = boto3.client("s3", **kwargs)
         self.bucket = settings.s3_bucket
 
     async def generate_upload_url(self, key: str, content_type: str, expires: int = 3600) -> dict:
