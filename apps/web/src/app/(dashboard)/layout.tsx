@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { isAuthenticated } from '@/lib/auth'
 import Sidebar from '@/components/sidebar'
 import ErrorBoundary from '@/components/error-boundary'
+import ContextualHelp from '@/components/contextual-help'
 
 export default function DashboardLayout({
   children,
@@ -38,6 +39,7 @@ export default function DashboardLayout({
           <ErrorBoundary>
             {children}
           </ErrorBoundary>
+          <ContextualHelp />
         </div>
       </main>
     </div>
