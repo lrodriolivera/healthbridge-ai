@@ -70,7 +70,12 @@ async def list_tenants(
     db: AsyncSession = Depends(get_db),
 ):
     """List all tenants (super admin only)."""
-    _require_super_admin(current_user)
+    try:
+        _require_super_admin(current_user)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Auth error: {str(e)[:200]}")
 
     result = await db.execute(select(Tenant).order_by(Tenant.created_at.desc()))
     tenants = result.scalars().all()
@@ -98,6 +103,16 @@ async def create_tenant(
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new tenant with admin user (super admin only)."""
+    import traceback
+    try:
+        return await _create_tenant_impl(body, current_user, db)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {type(e).__name__}: {str(e)[:200]}")
+
+
+async def _create_tenant_impl(body, current_user, db):
     _require_super_admin(current_user)
 
     if body.plan not in PLANS:

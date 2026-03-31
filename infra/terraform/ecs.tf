@@ -37,18 +37,16 @@ resource "aws_ecs_task_definition" "api" {
     portMappings = [{ containerPort = 8000, protocol = "tcp" }]
     environment = [
       { name = "ENVIRONMENT", value = var.environment },
+      { name = "SECRET_KEY", value = var.jwt_secret_key },
+      { name = "DATABASE_URL", value = "postgresql+asyncpg://${var.db_username}:${var.db_password}@${aws_rds_cluster.main.endpoint}:5432/${var.db_name}" },
       { name = "REDIS_URL", value = "redis://${aws_elasticache_replication_group.main.primary_endpoint_address}:6379/0" },
       { name = "S3_BUCKET", value = aws_s3_bucket.data.id },
       { name = "STORAGE_BACKEND", value = "s3" },
       { name = "AWS_REGION", value = var.aws_region },
       { name = "AWS_BEDROCK_REGION", value = var.bedrock_region },
+      { name = "AWS_BEDROCK_ACCESS_KEY_ID", value = var.bedrock_access_key_id },
+      { name = "AWS_BEDROCK_SECRET_ACCESS_KEY", value = var.bedrock_secret_access_key },
       { name = "CORS_ALLOWED_ORIGINS", value = var.domain_name != "" ? "https://${var.domain_name}" : "http://${aws_lb.main.dns_name},http://localhost:3000" },
-    ]
-    secrets = [
-      { name = "SECRET_KEY", valueFrom = "${aws_secretsmanager_secret.app_secrets.arn}:SECRET_KEY::" },
-      { name = "DATABASE_URL", valueFrom = "${aws_secretsmanager_secret.app_secrets.arn}:DATABASE_URL::" },
-      { name = "AWS_BEDROCK_ACCESS_KEY_ID", valueFrom = "${aws_secretsmanager_secret.app_secrets.arn}:AWS_BEDROCK_ACCESS_KEY_ID::" },
-      { name = "AWS_BEDROCK_SECRET_ACCESS_KEY", valueFrom = "${aws_secretsmanager_secret.app_secrets.arn}:AWS_BEDROCK_SECRET_ACCESS_KEY::" },
     ]
     logConfiguration = {
       logDriver = "awslogs"
