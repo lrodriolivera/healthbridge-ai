@@ -53,6 +53,9 @@ async def export_documentation(
     tenant: Tenant = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
 ):
+    from src.middleware.plan_enforcer import enforce_feature
+    enforce_feature(tenant, "export")
+
     components, mappings, generated, test_results = await _load_project_data(project, tenant, db)
 
     markdown = export_project_documentation(project, components, mappings, generated, test_results)
@@ -61,6 +64,28 @@ async def export_documentation(
     return Response(
         content=markdown,
         media_type="text/markdown",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.get("/{project_id}/export/pdf")
+async def export_pdf(
+    project: Project = Depends(get_project_for_tenant),
+    tenant: Tenant = Depends(get_current_tenant),
+    db: AsyncSession = Depends(get_db),
+):
+    from src.middleware.plan_enforcer import enforce_feature
+    enforce_feature(tenant, "export")
+
+    components, mappings, generated, test_results = await _load_project_data(project, tenant, db)
+
+    from src.services.pdf_exporter import export_project_pdf
+    pdf_bytes = export_project_pdf(project, components, mappings, generated, test_results)
+    filename = f"{project.name.replace(' ', '_')}_DOCUMENTATION.pdf"
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 

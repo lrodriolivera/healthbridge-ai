@@ -38,6 +38,14 @@ async def generate_all(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    # Enforce plan limits
+    from src.middleware.plan_enforcer import enforce_limit, enforce_feature
+    enforce_feature(tenant, "codegen")
+    total_generated = (await db.execute(
+        select(func.count()).select_from(GeneratedClass).where(GeneratedClass.tenant_id == tenant.id)
+    )).scalar_one()
+    enforce_limit(tenant, "max_code_generations", total_generated)
+
     # Check there are confirmed mappings
     count = await db.execute(
         select(func.count()).select_from(Mapping).where(

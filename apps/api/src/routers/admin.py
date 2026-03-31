@@ -249,7 +249,14 @@ async def create_user(
     db.add(user)
     await db.flush()
 
-    return {"user_id": str(user.id), "email": user.email, "role": user.role, "tenant": tenant.name}
+    # Send invitation email
+    from src.services.email_service import email_service
+    from src.config import settings as app_settings
+    await email_service.send_invitation(
+        body.email, tenant.name, current_user.email, body.password, app_settings.app_url + "/login"
+    )
+
+    return {"user_id": str(user.id), "email": user.email, "role": user.role, "tenant": tenant.name, "invitation_sent": True}
 
 
 @router.get("/plans")

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { isAuthenticated } from '@/lib/auth'
 import Sidebar from '@/components/sidebar'
+import ErrorBoundary from '@/components/error-boundary'
 
 export default function DashboardLayout({
   children,
@@ -34,7 +35,9 @@ export default function DashboardLayout({
       <Sidebar />
       <main className="flex-1 overflow-auto">
         <div className="mx-auto max-w-6xl px-4 py-8 lg:px-8">
-          {children}
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
         </div>
       </main>
     </div>

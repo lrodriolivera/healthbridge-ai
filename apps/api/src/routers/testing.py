@@ -115,10 +115,13 @@ async def execute_test(
     test_id: uuid.UUID,
     body: ExecuteRequest,
     project: Project = Depends(get_project_for_tenant),
-    tenant: Tenant = Depends(get_current_tenant),
+    tenant: Tenant = Depends(get_current_tenant),  # enforce_feature("testing") checked below
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    from src.middleware.plan_enforcer import enforce_feature
+    enforce_feature(tenant, "testing")
+
     tc_result = await db.execute(
         select(TestCase).where(
             TestCase.id == test_id, TestCase.project_id == project.id, TestCase.tenant_id == tenant.id

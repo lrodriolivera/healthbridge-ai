@@ -57,6 +57,10 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 60
     refresh_token_expire_days: int = 7
 
+    # Email
+    email_from_domain: str = "healthbridge.ai"
+    app_url: str = "http://localhost:3000"  # Frontend URL for links in emails
+
     # Security
     login_rate_limit: int = 5  # max attempts per minute
     min_password_length: int = 8

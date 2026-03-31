@@ -15,9 +15,12 @@ resource "aws_rds_cluster" "main" {
   master_password        = var.db_password
   db_subnet_group_name   = aws_db_subnet_group.main.name
   vpc_security_group_ids = [aws_security_group.rds.id]
-  skip_final_snapshot    = var.environment != "production"
-  storage_encrypted      = true
-  deletion_protection    = var.environment == "production"
+  skip_final_snapshot          = var.environment != "production"
+  storage_encrypted            = true
+  deletion_protection          = var.environment == "production"
+  backup_retention_period      = 30
+  preferred_backup_window      = "03:00-04:00"
+  copy_tags_to_snapshot        = true
 
   serverlessv2_scaling_configuration {
     min_capacity = 0.5

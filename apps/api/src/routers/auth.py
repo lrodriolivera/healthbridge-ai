@@ -145,6 +145,66 @@ async def login(body: LoginRequest, request: Request, db: AsyncSession = Depends
     return response
 
 
+@router.post("/forgot-password")
+async def forgot_password(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """Send password reset email. Always returns 200 to prevent email enumeration."""
+    from pydantic import BaseModel
+
+    class ForgotRequest(BaseModel):
+        email: str
+
+    body = ForgotRequest(**(await request.json()))
+    rate_limiter.check(get_client_key(request, "forgot"), max_attempts=3, window_seconds=300)
+
+    result = await db.execute(select(User).where(User.email == body.email))
+    user = result.scalar_one_or_none()
+
+    if user:
+        # Generate reset token (JWT with short expiry)
+        from datetime import timedelta
+        reset_token = create_access_token(
+            {"sub": str(user.id), "type": "reset"},
+            expires_delta=timedelta(hours=1),
+        )
+        from src.services.email_service import email_service
+        await email_service.send_password_reset(
+            user.email, reset_token, f"{settings.app_url}/reset-password"
+        )
+
+    return {"status": "ok", "message": "If the email exists, a reset link has been sent."}
+
+
+@router.post("/reset-password")
+async def reset_password(request: Request, db: AsyncSession = Depends(get_db)):
+    """Reset password using token from email."""
+    from pydantic import BaseModel
+
+    class ResetRequest(BaseModel):
+        token: str
+        new_password: str
+
+    body = ResetRequest(**(await request.json()))
+    _validate_password(body.new_password)
+
+    payload = decode_access_token(body.token)
+    if not payload or payload.get("type") != "reset":
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+
+    user_id = payload.get("sub")
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid token")
+
+    user.password_hash = get_password_hash(body.new_password)
+    await db.flush()
+
+    return {"status": "ok", "message": "Password reset successfully. You can now login."}
+
+
 @router.post("/logout")
 async def logout():
     """Clear auth cookie."""

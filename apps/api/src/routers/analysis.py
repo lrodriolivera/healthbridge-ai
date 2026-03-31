@@ -34,6 +34,13 @@ async def trigger_analysis(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    from src.middleware.plan_enforcer import enforce_limit, enforce_feature
+    enforce_feature(tenant, "analysis")
+    comp_count = (await db.execute(
+        select(func.count()).select_from(SourceComponent).where(SourceComponent.project_id == project.id)
+    )).scalar_one()
+    enforce_limit(tenant, "max_analysis_calls", comp_count)
+
     if project.status in ("analyzing",):
         raise HTTPException(status_code=409, detail="Analysis already in progress")
 

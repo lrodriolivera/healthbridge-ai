@@ -53,6 +53,14 @@ async def create_project(
     tenant: Tenant = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
 ):
+    # Enforce plan limits
+    from src.middleware.plan_enforcer import enforce_limit
+    from sqlalchemy import func as sa_func
+    project_count = (await db.execute(
+        select(sa_func.count()).select_from(Project).where(Project.tenant_id == tenant.id)
+    )).scalar_one()
+    enforce_limit(tenant, "max_projects", project_count)
+
     platforms = [p.value for p in body.source_platforms]
     project = Project(
         tenant_id=tenant.id,

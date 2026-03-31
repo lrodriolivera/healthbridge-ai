@@ -342,6 +342,19 @@ class ApiClient {
     a.click()
     URL.revokeObjectURL(url)
   }
+  // Auth extras
+  forgotPassword(email: string) { return this.fetch('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }) }
+  resetPassword(token: string, newPassword: string) { return this.fetch('/auth/reset-password', { method: 'POST', body: JSON.stringify({ token, new_password: newPassword }) }) }
+  logout() { return this.fetch('/auth/logout', { method: 'POST' }) }
+
+  // Admin
+  listTenants() { return this.fetch('/admin/tenants') }
+  createTenant(data: any) { return this.fetch('/admin/tenants', { method: 'POST', body: JSON.stringify(data) }) }
+  updateTenantPlan(tenantId: string, data: any) { return this.fetch(`/admin/tenants/${tenantId}/plan`, { method: 'PUT', body: JSON.stringify(data) }) }
+  toggleTenantActive(tenantId: string) { return this.fetch(`/admin/tenants/${tenantId}/toggle-active`, { method: 'PUT' }) }
+  createUser(data: any) { return this.fetch('/admin/users', { method: 'POST', body: JSON.stringify(data) }) }
+  listPlans() { return this.fetch('/admin/plans') }
+
   // Settings
   getTenantSettings() { return this.fetch('/settings/tenant') }
   updateTenantSettings(data: any) { return this.fetch('/settings/tenant', { method: 'PUT', body: JSON.stringify(data) }) }

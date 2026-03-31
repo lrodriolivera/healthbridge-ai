@@ -45,6 +45,9 @@ async def deploy(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    from src.middleware.plan_enforcer import enforce_feature
+    enforce_feature(tenant, "deploy")
+
     # Verify IRIS connection belongs to tenant
     conn_result = await db.execute(
         select(IRISConnection).where(

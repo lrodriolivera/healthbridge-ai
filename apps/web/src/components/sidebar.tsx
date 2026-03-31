@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { FolderOpen, Server, ScrollText, Settings, LogOut, Menu, X } from 'lucide-react'
+import { FolderOpen, Server, ScrollText, Settings, Shield, LogOut, Menu, X } from 'lucide-react'
 import { api } from '@/lib/api'
 import { removeToken } from '@/lib/auth'
 
@@ -19,6 +19,7 @@ const navItems = [
   { label: 'IRIS Connections', href: '/iris-connections', icon: Server, active: true },
   { label: 'Audit Log', href: '/audit-log', icon: ScrollText, active: true },
   { label: 'Settings', href: '/settings', icon: Settings, active: true },
+  { label: 'Admin', href: '/admin', icon: Shield, active: true },
 ]
 
 export default function Sidebar() {
