@@ -196,6 +196,10 @@ class ApiClient {
     })
   }
 
+  getGenerationProgress(projectId: string) {
+    return this.fetch(`/projects/${projectId}/generate/progress`)
+  }
+
   generateSingle(projectId: string, mappingId: string) {
     return this.fetch(`/projects/${projectId}/generate/${mappingId}`, {
       method: 'POST',

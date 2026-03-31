@@ -59,6 +59,59 @@ async def generate_all(
     return {"task_id": task.id, "status": "queued", "confirmed_mappings": confirmed}
 
 
+@router.get("/{project_id}/generate/progress")
+async def generation_progress(
+    project: Project = Depends(get_project_for_tenant),
+    tenant: Tenant = Depends(get_current_tenant),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get code generation progress."""
+    confirmed_count = (await db.execute(
+        select(func.count()).select_from(Mapping).where(
+            Mapping.project_id == project.id,
+            Mapping.tenant_id == tenant.id,
+            Mapping.confirmed_by.isnot(None),
+        )
+    )).scalar_one()
+
+    generated_count = (await db.execute(
+        select(func.count()).select_from(GeneratedClass).where(
+            GeneratedClass.project_id == project.id,
+            GeneratedClass.tenant_id == tenant.id,
+        )
+    )).scalar_one()
+
+    passed_count = (await db.execute(
+        select(func.count()).select_from(GeneratedClass).where(
+            GeneratedClass.project_id == project.id,
+            GeneratedClass.tenant_id == tenant.id,
+            GeneratedClass.validation_status == "passed",
+        )
+    )).scalar_one()
+
+    failed_count = (await db.execute(
+        select(func.count()).select_from(GeneratedClass).where(
+            GeneratedClass.project_id == project.id,
+            GeneratedClass.tenant_id == tenant.id,
+            GeneratedClass.validation_status == "failed",
+        )
+    )).scalar_one()
+
+    is_running = project.status in ("generating",)
+    task_id = (project.metadata_ or {}).get("codegen_task_id")
+
+    return {
+        "status": project.status,
+        "is_running": is_running,
+        "confirmed_mappings": confirmed_count,
+        "generated": generated_count,
+        "passed": passed_count,
+        "failed": failed_count,
+        "task_id": task_id,
+        "progress_pct": round((generated_count / confirmed_count * 100) if confirmed_count > 0 else 0, 1),
+    }
+
+
 @router.post("/{project_id}/generate/{mapping_id}")
 async def generate_single(
     mapping_id: uuid.UUID,
