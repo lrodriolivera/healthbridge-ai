@@ -58,7 +58,19 @@ def _validate_password(password: str):
 
 @router.post("/register", response_model=TokenResponse)
 async def register(body: RegisterRequest, request: Request, db: AsyncSession = Depends(get_db)):
+    """Public registration is DISABLED. Use /api/v1/admin/tenants to create accounts.
+    This endpoint only works if no users exist yet (initial setup)."""
     rate_limiter.check(get_client_key(request, "register"), max_attempts=10, window_seconds=300)
+
+    # Check if any users exist — only allow self-registration for first user
+    from sqlalchemy import func
+    user_count = (await db.execute(select(func.count()).select_from(User))).scalar_one()
+    if user_count > 0:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Registration disabled. Contact the platform administrator to create your account.",
+        )
+
     _validate_password(body.password)
 
     existing = await db.execute(select(User).where(User.email == body.email))
@@ -70,7 +82,8 @@ async def register(body: RegisterRequest, request: Request, db: AsyncSession = D
     if existing_tenant.scalar_one_or_none():
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Organization name already taken")
 
-    tenant = Tenant(name=body.tenant_name, slug=slug)
+    # First user gets enterprise plan
+    tenant = Tenant(name=body.tenant_name, slug=slug, plan="enterprise")
     db.add(tenant)
     await db.flush()
 

@@ -18,20 +18,21 @@ class TestRegister:
         assert "access_token" in data
         assert data["token_type"] == "bearer"
 
-    async def test_register_duplicate_email(self, client: AsyncClient):
-        # First registration
+    async def test_register_blocked_after_first_user(self, client: AsyncClient):
+        # First registration (allowed — no users exist)
         await client.post("/api/v1/auth/register", json={
-            "email": "duplicate@test.com",
+            "email": "first@test.com",
             "password": "TestPass1",
-            "tenant_name": "Org A",
+            "tenant_name": "First Org",
         })
-        # Second with same email
+        # Second registration blocked (users already exist)
         response = await client.post("/api/v1/auth/register", json={
-            "email": "duplicate@test.com",
+            "email": "second@test.com",
             "password": "TestPass2",
-            "tenant_name": "Org B",
+            "tenant_name": "Second Org",
         })
-        assert response.status_code == 409
+        assert response.status_code == 403
+        assert "Registration disabled" in response.json()["detail"]
 
     async def test_register_invalid_email(self, client: AsyncClient):
         response = await client.post("/api/v1/auth/register", json={

@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import String, text
+from sqlalchemy import Boolean, String, text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -20,6 +20,9 @@ class Tenant(TimestampMixin, Base):
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     slug: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    plan: Mapped[str] = mapped_column(String(50), server_default="trial")
+    is_active: Mapped[bool] = mapped_column(Boolean, server_default=text("true"))
+    trial_expires_at: Mapped[datetime | None] = mapped_column(nullable=True)
     settings: Mapped[dict] = mapped_column(JSONB, server_default=text("'{}'::jsonb"))
 
     users = relationship("User", back_populates="tenant", lazy="selectin")

@@ -2,6 +2,10 @@
 
 import pytest
 from httpx import AsyncClient
+from tests.conftest import TestSessionFactory
+from src.models.tenant import Tenant
+from src.models.user import User
+from src.utils.security import create_access_token, get_password_hash
 
 
 @pytest.mark.asyncio
@@ -82,12 +86,9 @@ class TestProjectsCRUD:
 
 @pytest.mark.asyncio
 class TestTenantIsolation:
-    async def test_cannot_access_other_tenant_project(self, client: AsyncClient):
-        # Create tenant A
-        reg_a = await client.post("/api/v1/auth/register", json={
-            "email": "a@a.com", "password": "TestPass1", "tenant_name": "Tenant A",
-        })
-        token_a = reg_a.json()["access_token"]
+    async def test_cannot_access_other_tenant_project(self, client: AsyncClient, tenant_and_user, db):
+        # Tenant A from fixture
+        tenant_a, user_a, token_a = tenant_and_user
 
         # Create project in tenant A
         proj = await client.post("/api/v1/projects", json={
@@ -95,11 +96,16 @@ class TestTenantIsolation:
         }, headers={"Authorization": f"Bearer {token_a}"})
         project_id = proj.json()["id"]
 
-        # Create tenant B
-        reg_b = await client.post("/api/v1/auth/register", json={
-            "email": "b@b.com", "password": "TestPass1", "tenant_name": "Tenant B",
-        })
-        token_b = reg_b.json()["access_token"]
+        # Create tenant B directly in DB
+        import uuid
+        tenant_b = Tenant(name="Tenant B", slug=f"b-{uuid.uuid4().hex[:6]}", plan="enterprise")
+        db.add(tenant_b)
+        await db.flush()
+        user_b = User(tenant_id=tenant_b.id, email="b@b.com", password_hash=get_password_hash("TestPass1"), role="admin")
+        db.add(user_b)
+        await db.flush()
+        await db.commit()
+        token_b = create_access_token({"sub": str(user_b.id), "tenant_id": str(tenant_b.id), "role": "admin"})
 
         # Tenant B tries to access tenant A's project
         response = await client.get(

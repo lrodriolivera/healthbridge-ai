@@ -10,7 +10,7 @@ from src.db import engine
 from src.middleware.audit_logger import AuditLoggerMiddleware
 from src.middleware.request_context import RequestContextMiddleware
 from src.middleware.security_headers import SecurityHeadersMiddleware
-from src.routers import analysis, audit, auth, codegen, deploy, export, field_mappings, iris_connections, lookup_tables, mappings, projects, settings, templates, testing, uploads
+from src.routers import admin, analysis, audit, auth, codegen, deploy, export, field_mappings, iris_connections, lookup_tables, mappings, projects, settings, templates, testing, uploads
 
 
 @asynccontextmanager
@@ -98,6 +98,9 @@ app.include_router(export.router, prefix="/api/v1/projects", tags=["export"])
 app.include_router(settings.router, prefix="/api/v1/settings", tags=["settings"])
 app.include_router(lookup_tables.router, prefix="/api/v1/projects", tags=["lookup-tables"])
 app.include_router(templates.router, prefix="/api/v1/templates", tags=["templates"])
+
+# Admin (super admin only)
+app.include_router(admin.router, prefix="/api/v1/admin", tags=["admin"])
 
 # GraphQL
 from src.graphql_schema import graphql_router

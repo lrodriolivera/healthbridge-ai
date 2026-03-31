@@ -319,11 +319,23 @@ class TestFullPipeline:
         headers_a = pipeline["headers"]
         pid_a = pipeline["project"]["id"]
 
-        # Register tenant B
-        reg_b = await client.post("/api/v1/auth/register", json={
-            "email": "tenant-b@test.com", "password": "PassB1234", "tenant_name": "Tenant B",
-        })
-        headers_b = {"Authorization": f"Bearer {reg_b.json()['access_token']}"}
+        # Create tenant B directly (register blocked after first user)
+        import uuid
+        from tests.conftest import TestSessionFactory
+        from src.models.tenant import Tenant
+        from src.models.user import User
+        from src.utils.security import create_access_token, get_password_hash
+
+        async with TestSessionFactory() as session:
+            tb = Tenant(name="Tenant B", slug=f"tb-{uuid.uuid4().hex[:6]}", plan="enterprise")
+            session.add(tb)
+            await session.flush()
+            ub = User(tenant_id=tb.id, email="tenant-b@test.com", password_hash=get_password_hash("PassB1234"), role="admin")
+            session.add(ub)
+            await session.flush()
+            await session.commit()
+            token_b = create_access_token({"sub": str(ub.id), "tenant_id": str(tb.id), "role": "admin"})
+        headers_b = {"Authorization": f"Bearer {token_b}"}
 
         # Tenant B cannot see Tenant A's project
         resp = await client.get(f"/api/v1/projects/{pid_a}", headers=headers_b)
