@@ -131,6 +131,7 @@ async def delete_mapping(
 async def auto_generate_mappings(
     project: Project = Depends(get_project_for_tenant),
     tenant: Tenant = Depends(get_current_tenant),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     # Get analyzed components
@@ -152,6 +153,7 @@ async def auto_generate_mappings(
             component, project.id, tenant.id, project.source_platform
         )
         for m in mappings:
+            m.confirmed_by = current_user.id  # Auto-confirm all generated mappings
             db.add(m)
         all_mappings.extend(mappings)
 
@@ -160,6 +162,33 @@ async def auto_generate_mappings(
         await db.refresh(m)
 
     return MappingListResponse(items=all_mappings, total=len(all_mappings))
+
+
+@router.post("/{project_id}/mappings/confirm-all", response_model=MappingListResponse)
+async def confirm_all_mappings(
+    project: Project = Depends(get_project_for_tenant),
+    tenant: Tenant = Depends(get_current_tenant),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Confirm all unconfirmed mappings at once."""
+    result = await db.execute(
+        select(Mapping).where(
+            Mapping.project_id == project.id,
+            Mapping.tenant_id == tenant.id,
+            Mapping.confirmed_by.is_(None),
+        )
+    )
+    unconfirmed = result.scalars().all()
+
+    for m in unconfirmed:
+        m.confirmed_by = current_user.id
+
+    await db.flush()
+    for m in unconfirmed:
+        await db.refresh(m)
+
+    return MappingListResponse(items=unconfirmed, total=len(unconfirmed))
 
 
 @router.post("/{project_id}/mappings/{mapping_id}/confirm", response_model=MappingResponse)
