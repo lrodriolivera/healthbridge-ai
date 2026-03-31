@@ -27,8 +27,9 @@ resource "aws_lb_target_group" "api" {
   }
 }
 
-# HTTP → HTTPS redirect
+# HTTP listener — redirect to HTTPS in production, forward in dev
 resource "aws_lb_listener" "http" {
+  count             = var.acm_certificate_arn != "" ? 1 : 0
   load_balancer_arn = aws_lb.main.arn
   port              = 80
   protocol          = "HTTP"
@@ -43,12 +44,12 @@ resource "aws_lb_listener" "http" {
   }
 }
 
-# HTTPS listener
+# HTTPS listener (with certificate) or HTTP for dev
 resource "aws_lb_listener" "https" {
   load_balancer_arn = aws_lb.main.arn
-  port              = 443
-  protocol          = "HTTPS"
-  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+  port              = var.acm_certificate_arn != "" ? 443 : 80
+  protocol          = var.acm_certificate_arn != "" ? "HTTPS" : "HTTP"
+  ssl_policy        = var.acm_certificate_arn != "" ? "ELBSecurityPolicy-TLS13-1-2-2021-06" : null
   certificate_arn   = var.acm_certificate_arn != "" ? var.acm_certificate_arn : null
 
   default_action {
@@ -63,13 +64,16 @@ resource "aws_wafv2_web_acl" "main" {
   scope       = "REGIONAL"
   description = "WAF for HealthBridge API"
 
-  default_action { allow {} }
+  default_action {
+    allow {}
+  }
 
-  # Rate limiting
   rule {
     name     = "rate-limit"
     priority = 1
-    action { block {} }
+    action {
+      block {}
+    }
     statement {
       rate_based_statement {
         limit              = 2000
@@ -83,11 +87,12 @@ resource "aws_wafv2_web_acl" "main" {
     }
   }
 
-  # AWS Managed Rules — Common
   rule {
     name     = "aws-common"
     priority = 2
-    override_action { none {} }
+    override_action {
+      none {}
+    }
     statement {
       managed_rule_group_statement {
         name        = "AWSManagedRulesCommonRuleSet"
