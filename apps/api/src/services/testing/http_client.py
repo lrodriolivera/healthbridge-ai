@@ -1,11 +1,46 @@
 """HTTP/SOAP test client for integration testing"""
 
+import ipaddress
 import time
+from urllib.parse import urlparse
 
 import httpx
 import structlog
 
 logger = structlog.get_logger()
+
+# Blocked internal networks (SSRF protection)
+BLOCKED_NETWORKS = [
+    ipaddress.ip_network("127.0.0.0/8"),
+    ipaddress.ip_network("169.254.169.254/32"),  # AWS metadata
+    ipaddress.ip_network("10.0.0.0/8"),           # Private
+    ipaddress.ip_network("172.16.0.0/12"),         # Private
+    ipaddress.ip_network("192.168.0.0/16"),        # Private
+]
+
+
+def validate_url(url: str):
+    """Validate URL is not targeting internal/metadata endpoints."""
+    parsed = urlparse(url)
+    hostname = parsed.hostname or ""
+
+    if not hostname:
+        raise ValueError("URL must have a hostname")
+
+    # Block localhost variants
+    if hostname in ("localhost", "0.0.0.0", "[::]"):
+        raise ValueError("Internal URLs not allowed")
+
+    # Block internal IPs
+    try:
+        ip = ipaddress.ip_address(hostname)
+        for network in BLOCKED_NETWORKS:
+            if ip in network:
+                raise ValueError(f"Internal IP {hostname} not allowed")
+    except ValueError as e:
+        if "not allowed" in str(e):
+            raise
+        # hostname is a DNS name, not IP — allow (will resolve at request time)
 
 
 class HTTPTestClient:
@@ -21,6 +56,7 @@ class HTTPTestClient:
     ) -> dict:
         start = time.time()
         try:
+            validate_url(url)
             async with httpx.AsyncClient(timeout=self.timeout, verify=False) as client:
                 response = await client.request(
                     method=method,

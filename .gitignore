@@ -53,6 +53,17 @@ credencialesClaude/
 *.csv
 *.pem
 *.key
+*.credentials
+capturas/
+
+# Terraform sensitive
+*.tfvars
+tfplan
+*.tfplan
 
 # Uploads (local dev storage)
 uploads/
+
+# Secrets
+.env.production
+*.secret

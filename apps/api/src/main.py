@@ -8,6 +8,7 @@ from sqlalchemy import text as sa_text
 
 from src.db import engine
 from src.middleware.request_context import RequestContextMiddleware
+from src.middleware.security_headers import SecurityHeadersMiddleware
 from src.routers import analysis, audit, auth, codegen, deploy, export, field_mappings, iris_connections, lookup_tables, mappings, projects, settings, templates, testing, uploads
 
 
@@ -61,9 +62,10 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=app_settings.cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "X-Request-ID"],
 )
+app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(RequestContextMiddleware)
 
 # Phase 0 routers
@@ -116,8 +118,8 @@ async def readiness_check():
         async with engine.connect() as conn:
             await conn.execute(sa_text("SELECT 1"))
         checks["database"] = "ok"
-    except Exception as e:
-        checks["database"] = f"error: {str(e)[:100]}"
+    except Exception:
+        checks["database"] = "error"
 
     # Redis
     try:
@@ -125,8 +127,8 @@ async def readiness_check():
         r = redis_lib.from_url(app_settings.redis_url, socket_timeout=3)
         r.ping()
         checks["redis"] = "ok"
-    except Exception as e:
-        checks["redis"] = f"error: {str(e)[:100]}"
+    except Exception:
+        checks["redis"] = "error"
 
     all_ok = all(v == "ok" for v in checks.values())
     status_code = 200 if all_ok else 503

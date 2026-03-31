@@ -67,6 +67,11 @@ variable "worker_desired_count" {
   default = 1
 }
 
+variable "jwt_secret_key" {
+  description = "JWT signing secret (64+ chars)"
+  sensitive   = true
+}
+
 # Domain
 variable "domain_name" {
   description = "Domain for the application (e.g., app.healthbridge.ai)"

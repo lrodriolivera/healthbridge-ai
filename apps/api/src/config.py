@@ -9,8 +9,17 @@ class Settings(BaseSettings):
     # App
     app_name: str = "HealthBridge AI"
     debug: bool = False
-    secret_key: str = "change-me-in-production"
+    secret_key: str = ""  # REQUIRED: Set via SECRET_KEY env var
     environment: str = "development"  # development, staging, production
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        if not self.secret_key or self.secret_key == "change-me-in-production":
+            if self.environment == "production":
+                raise ValueError("SECRET_KEY must be set in production. Generate with: python -c \"import secrets; print(secrets.token_urlsafe(64))\"")
+            # Auto-generate for development only
+            import secrets
+            self.secret_key = secrets.token_urlsafe(64)
 
     # CORS
     cors_allowed_origins: str = "http://localhost:3000"  # comma-separated

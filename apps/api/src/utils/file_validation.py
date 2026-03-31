@@ -47,7 +47,8 @@ def validate_content_type(content_type: str | None, filename: str):
         return  # Skip if not provided
 
     if content_type not in ALLOWED_MIME_TYPES:
-        logger.warning("Suspicious content type", content_type=content_type, filename=filename)
+        logger.warning("Blocked content type", content_type=content_type, filename=filename)
+        raise FileValidationError(f"Content type '{content_type}' not allowed")
 
 
 def validate_zip_content(content: bytes, filename: str):
